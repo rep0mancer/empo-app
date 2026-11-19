@@ -40,6 +40,11 @@ public enum BuiltinLayout {
                         size: ControlLimits.defaultButtonSize, opacity: 1)
                 }
             },
-            actionButtons: [])
+            actionButtons: [
+                ActionButtonSpec(
+                    action: EmpoActionCatalog.togglePokeDaisy,
+                    x: isLandscape ? 0.90 : 0.88, y: isLandscape ? 0.34 : 0.88,
+                    size: 44, opacity: 1)
+            ])
     }
 }

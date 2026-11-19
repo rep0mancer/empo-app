@@ -132,7 +132,9 @@ final class PlayerActionRegistry {
     /// Empo Player on the Mac has no touch controls.
     static let actionIDs: Set<String> = {
         #if os(macOS)
-        EmpoActionCatalog.allIDs.subtracting([EmpoActionCatalog.toggleTouchControls])
+        EmpoActionCatalog.allIDs.subtracting([
+            EmpoActionCatalog.toggleTouchControls, EmpoActionCatalog.openMenu, EmpoActionCatalog.togglePokeDaisy,
+        ])
         #else
         EmpoActionCatalog.allIDs
         #endif
@@ -140,6 +142,8 @@ final class PlayerActionRegistry {
     static let actions = EmpoActionCatalog.all.filter { actionIDs.contains($0.id) }
 
     var pauseMenu: () -> Void = {}
+    var openMenu: () -> Void = {}
+    var togglePokeDaisy: () -> Void = {}
     var toggleTouchControls: () -> Void = {}
     var log: (String) -> Void = { _ in }
 
@@ -167,6 +171,10 @@ final class PlayerActionRegistry {
             handle: Self.pressOnly { [runtime] in runtime.fastForwardToggled() }),
         EmpoActionCatalog.pauseMenu: ActionBehavior(
             handle: Self.pressOnly { [weak self] in self?.pauseMenu() }),
+        EmpoActionCatalog.openMenu: ActionBehavior(
+            handle: Self.pressOnly { [weak self] in self?.openMenu() }),
+        EmpoActionCatalog.togglePokeDaisy: ActionBehavior(
+            handle: Self.pressOnly { [weak self] in self?.togglePokeDaisy() }),
         EmpoActionCatalog.toggleCheats: ActionBehavior(
             handle: Self.pressOnly { [engine] in
                 // The cheat scripts of the engine open their menu on HOME

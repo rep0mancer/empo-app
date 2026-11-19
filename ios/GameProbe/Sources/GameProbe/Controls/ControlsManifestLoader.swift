@@ -439,7 +439,7 @@ public enum ControlsManifestLoader {
         else { return nil }
         return DPadSpec(
             x: coords.x, y: coords.y, size: placement.size, opacity: placement.opacity,
-            style: style)
+            visible: placement.visible, style: style)
     }
 
     private static func parseButtons(
@@ -565,7 +565,7 @@ public enum ControlsManifestLoader {
 
         return ButtonSpec(
             label: label, key: key, x: coords.x, y: coords.y,
-            size: placement.size, opacity: placement.opacity)
+            size: placement.size, opacity: placement.opacity, visible: placement.visible)
     }
 
     // MARK: - Bindings

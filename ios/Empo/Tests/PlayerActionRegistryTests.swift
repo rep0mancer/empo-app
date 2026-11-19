@@ -8,6 +8,29 @@ import XCTest
 
 @MainActor
 final class PlayerActionRegistryTests: XCTestCase {
+    func testMenuPressIsIndependentOfPauseToLibrary() {
+        let registry = PlayerActionRegistry(engine: .none)
+        var menu = 0
+        var library = 0
+        registry.openMenu = { menu += 1 }
+        registry.pauseMenu = { library += 1 }
+        registry.handle(EmpoActionCatalog.openMenu, pressed: true)
+        registry.handle(EmpoActionCatalog.openMenu, pressed: false)
+        XCTAssertEqual(menu, 1)
+        XCTAssertEqual(library, 0)
+        registry.handle(EmpoActionCatalog.pauseMenu, pressed: true)
+        XCTAssertEqual(library, 1)
+    }
+
+    func testPokeDaisyRunsOncePerPress() {
+        let registry = PlayerActionRegistry(engine: .none)
+        var taps = 0
+        registry.togglePokeDaisy = { taps += 1 }
+        XCTAssertTrue(registry.handle(EmpoActionCatalog.togglePokeDaisy, pressed: true))
+        registry.handle(EmpoActionCatalog.togglePokeDaisy, pressed: false)
+        XCTAssertEqual(taps, 1)
+    }
+
     func testShowCheatsRunsOnlyInGamesWithCheats() {
         var cheatsEnabled = false
         let registry = PlayerActionRegistry(

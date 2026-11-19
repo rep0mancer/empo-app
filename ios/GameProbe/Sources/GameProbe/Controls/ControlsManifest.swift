@@ -57,6 +57,7 @@ public struct DPadSpec: Equatable, Sendable {
     public var y: Double
     public var size: Double?
     public var opacity: Double?
+    public var visible: Bool
     /// An absent file field means `.dpad`, and the serializer omits the
     /// field for `.dpad`.
     public var style: MovementStyle
@@ -66,12 +67,14 @@ public struct DPadSpec: Equatable, Sendable {
         y: Double,
         size: Double? = nil,
         opacity: Double? = nil,
+        visible: Bool = true,
         style: MovementStyle = .dpad
     ) {
         self.x = x
         self.y = y
         self.size = size
         self.opacity = opacity
+        self.visible = visible
         self.style = style
     }
 }
@@ -83,6 +86,7 @@ public struct ButtonSpec: Equatable, Sendable {
     public var y: Double
     public var size: Double?
     public var opacity: Double?
+    public var visible: Bool
 
     public init(
         label: String? = nil,
@@ -90,7 +94,8 @@ public struct ButtonSpec: Equatable, Sendable {
         x: Double,
         y: Double,
         size: Double? = nil,
-        opacity: Double? = nil
+        opacity: Double? = nil,
+        visible: Bool = true
     ) {
         self.label = label
         self.key = key
@@ -98,6 +103,7 @@ public struct ButtonSpec: Equatable, Sendable {
         self.y = y
         self.size = size
         self.opacity = opacity
+        self.visible = visible
     }
 }
 
@@ -109,19 +115,22 @@ public struct ActionButtonSpec: Equatable, Sendable {
     public var y: Double
     public var size: Double?
     public var opacity: Double?
+    public var visible: Bool
 
     public init(
         action: String,
         x: Double,
         y: Double,
         size: Double? = nil,
-        opacity: Double? = nil
+        opacity: Double? = nil,
+        visible: Bool = true
     ) {
         self.action = action
         self.x = x
         self.y = y
         self.size = size
         self.opacity = opacity
+        self.visible = visible
     }
 }
 

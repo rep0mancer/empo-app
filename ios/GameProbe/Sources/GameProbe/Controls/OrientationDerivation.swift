@@ -34,9 +34,10 @@ public enum OrientationDerivation {
             let center = mappedCenter(x: spec.x, y: spec.y, size: size)
             let placed = fraction(center)
             derivedDpad = DPadSpec(
-                x: placed.x, y: placed.y, size: size, opacity: spec.opacity, style: spec.style)
-            dpadObstacle = (center.x, center.y, size)
-        } else if let defaultDpad {
+                x: placed.x, y: placed.y, size: size, opacity: spec.opacity,
+                visible: spec.visible, style: spec.style)
+            if spec.visible { dpadObstacle = (center.x, center.y, size) }
+        } else if let defaultDpad, defaultDpad.visible {
             dpadObstacle = (
                 defaultDpad.x * targetWidth, defaultDpad.y * targetHeight,
                 defaultDpad.size ?? ControlLimits.defaultDPadSize
@@ -60,13 +61,21 @@ public enum OrientationDerivation {
             let center = mappedCenter(x: x, y: y, size: resolvedSize)
             return (center.x, center.y, resolvedSize)
         }
-        let positions =
-            inputs.isEmpty
-            ? []
-            : ButtonSeparation.separate(
-                inputs, width: targetWidth, height: targetHeight,
-                obstacles: dpadObstacle.map { [$0] } ?? []
-            ).positions
+        // Preserve hidden placements without letting them push visible controls away.
+        let visibleIndices = tagged.indices.filter {
+            switch tagged[$0] {
+            case .key(let button): button.visible
+            case .action(let button): button.visible
+            }
+        }
+        var positions = inputs.map { (x: $0.x, y: $0.y) }
+        let visiblePositions = ButtonSeparation.separate(
+            visibleIndices.map { inputs[$0] }, width: targetWidth, height: targetHeight,
+            obstacles: dpadObstacle.map { [$0] } ?? []
+        ).positions
+        for (index, position) in zip(visibleIndices, visiblePositions) {
+            positions[index] = position
+        }
 
         var derivedButtons: [ButtonSpec] = []
         var derivedActionButtons: [ActionButtonSpec] = []
@@ -78,13 +87,13 @@ public enum OrientationDerivation {
                     ButtonSpec(
                         label: button.label, key: button.key, x: placed.x, y: placed.y,
                         size: button.size ?? ControlLimits.defaultButtonSize,
-                        opacity: button.opacity))
+                        opacity: button.opacity, visible: button.visible))
             case .action(let button):
                 derivedActionButtons.append(
                     ActionButtonSpec(
                         action: button.action, x: placed.x, y: placed.y,
                         size: button.size ?? ControlLimits.defaultButtonSize,
-                        opacity: button.opacity))
+                        opacity: button.opacity, visible: button.visible))
             }
         }
 

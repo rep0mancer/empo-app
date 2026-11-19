@@ -62,6 +62,7 @@ public enum TouchSectionSyncCoder {
         var fields: [String: JSONValue] = ["x": .double(dpad.x), "y": .double(dpad.y)]
         fields["size"] = dpad.size.map(JSONValue.double)
         fields["opacity"] = dpad.opacity.map(JSONValue.double)
+        if !dpad.visible { fields["visible"] = .bool(false) }
         fields["style"] = .string(dpad.style.rawValue)
         return .object(fields.compactMapValues { $0 })
     }
@@ -76,6 +77,7 @@ public enum TouchSectionSyncCoder {
         fields["label"] = button.label.map(JSONValue.string)
         fields["size"] = button.size.map(JSONValue.double)
         fields["opacity"] = button.opacity.map(JSONValue.double)
+        if !button.visible { fields["visible"] = .bool(false) }
         return .object(fields.compactMapValues { $0 })
     }
 
@@ -86,6 +88,7 @@ public enum TouchSectionSyncCoder {
         ]
         fields["size"] = button.size.map(JSONValue.double)
         fields["opacity"] = button.opacity.map(JSONValue.double)
+        if !button.visible { fields["visible"] = .bool(false) }
         return .object(fields.compactMapValues { $0 })
     }
 
@@ -135,6 +138,7 @@ public enum TouchSectionSyncCoder {
         else { return nil }
         return DPadSpec(
             x: x, y: y, size: number(fields["size"]), opacity: number(fields["opacity"]),
+            visible: fields["visible"] != .bool(false),
             style: fields["style"]?.string.flatMap(MovementStyle.init(rawValue:)) ?? .dpad)
     }
 
@@ -144,7 +148,8 @@ public enum TouchSectionSyncCoder {
         else { return nil }
         return ButtonSpec(
             label: fields["label"]?.string, key: key, x: x, y: y,
-            size: number(fields["size"]), opacity: number(fields["opacity"]))
+            size: number(fields["size"]), opacity: number(fields["opacity"]),
+            visible: fields["visible"] != .bool(false))
     }
 
     private static func actionButtonSpec(of value: JSONValue) -> ActionButtonSpec? {
@@ -153,7 +158,8 @@ public enum TouchSectionSyncCoder {
         else { return nil }
         return ActionButtonSpec(
             action: action, x: x, y: y,
-            size: number(fields["size"]), opacity: number(fields["opacity"]))
+            size: number(fields["size"]), opacity: number(fields["opacity"]),
+            visible: fields["visible"] != .bool(false))
     }
 
     private static func number(_ value: JSONValue?) -> Double? {

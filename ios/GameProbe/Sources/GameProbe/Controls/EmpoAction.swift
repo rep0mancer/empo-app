@@ -50,6 +50,8 @@ public enum EmpoActionCatalog {
     public static let fastForwardHold = "$fastForward"
     public static let fastForwardToggle = "$toggleFastForward"
     public static let pauseMenu = "$pauseMenu"
+    public static let openMenu = "$openMenu"
+    public static let togglePokeDaisy = "$togglePokeDaisy"
     public static let toggleCheats = "$toggleCheats"
     public static let toggleTouchControls = "$toggleTouchControls"
 
@@ -75,6 +77,22 @@ public enum EmpoActionCatalog {
             displayName: "Pause game",
             blurb: "Pauses the game and takes you back to your library.",
             symbolName: "pause.circle",
+            kind: .instant,
+            touchValid: true
+        ),
+        EmpoAction(
+            id: openMenu,
+            displayName: "Menu",
+            blurb: "Opens the player menu.",
+            symbolName: "ellipsis.circle",
+            kind: .instant,
+            touchValid: true
+        ),
+        EmpoAction(
+            id: togglePokeDaisy,
+            displayName: "PokeDaisy",
+            blurb: "Opens or closes PokeDaisy.",
+            symbolName: "leaf",
             kind: .instant,
             touchValid: true
         ),

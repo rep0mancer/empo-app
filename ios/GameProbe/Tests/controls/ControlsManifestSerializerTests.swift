@@ -31,6 +31,47 @@ final class ControlsManifestSerializerTests: XCTestCase {
         )
     }
 
+    func testHiddenControlsRoundTripWithPlacementAndActionBinding() throws {
+        let document = """
+            { "version": 1, "touch": { "portrait": {
+              "dpad": { "x": 0.25, "y": 0.75, "visible": false },
+              "buttons": [{ "key": "KeyQ", "label": "L", "x": 0.5, "y": 0.25,
+                            "size": 48, "opacity": 0.75, "visible": false }],
+              "actionButtons": [{ "action": "$togglePokeDaisy", "x": 0.75, "y": 0.5, "visible": false }]
+            } }, "bindings": { "start": "$togglePokeDaisy" } }
+            """
+        let parsed = ControlsManifestLoader.parse(data: Data(document.utf8))
+        XCTAssertTrue(parsed.findings.isEmpty)
+        let manifest = try XCTUnwrap(parsed.manifest)
+        let touch = try XCTUnwrap(manifest.touch)
+        XCTAssertEqual(TouchSectionSyncCoder.section(of: TouchSectionSyncCoder.controls(of: touch)), touch)
+        let wire = ControlsManifestSerializer.serialize(touch, bindings: manifest.bindings)
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: wire) as? [String: Any])
+        let orientations = try XCTUnwrap(object["touch"] as? [String: Any])
+        let portrait = try XCTUnwrap(orientations["portrait"] as? [String: Any])
+        XCTAssertEqual((portrait["dpad"] as? [String: Any])?["visible"] as? Bool, false)
+        let key = try XCTUnwrap((portrait["buttons"] as? [[String: Any]])?.first)
+        XCTAssertEqual(key["visible"] as? Bool, false)
+        XCTAssertEqual(key["size"] as? Int, 48)
+        XCTAssertEqual(key["opacity"] as? Double, 0.75)
+        let action = try XCTUnwrap((portrait["actionButtons"] as? [[String: Any]])?.first)
+        XCTAssertEqual(action["visible"] as? Bool, false)
+        XCTAssertEqual(action["action"] as? String, "$togglePokeDaisy")
+        XCTAssertEqual(ControlsManifestLoader.parse(data: wire).manifest, manifest)
+    }
+
+    func testVisibilityRequiresABooleanAndDefaultsToVisible() throws {
+        func parse(_ extra: String) -> ControlsManifestLoader.Result {
+            let json = """
+                {"version":1,"touch":{"portrait":{"dpad":{"x":0.5,"y":0.5\(extra)}}}}
+                """
+            return ControlsManifestLoader.parse(data: Data(json.utf8))
+        }
+        XCTAssertEqual(parse("").manifest?.touch?.portrait?.dpad?.visible, true)
+        XCTAssertEqual(parse(",\"visible\":true").manifest?.touch?.portrait?.dpad?.visible, true)
+        XCTAssertTrue(parse(",\"visible\":0").findings.contains { $0.severity == .error })
+    }
+
     func testRoundTripZeroFindings() {
         let controller = BindingMap(entries: [
             .element("a"): .key("Enter"),

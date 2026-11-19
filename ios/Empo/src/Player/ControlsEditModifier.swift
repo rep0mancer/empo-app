@@ -30,6 +30,22 @@ struct AddButtonSheet: View {
                         actionRow(for: action)
                     }
                 }
+                Section("Gamepad buttons") {
+                    ForEach(EditorKeys.gamepad, id: \.label) { preset in
+                        if case .key(let code) = BindingResolver.builtinDefault.elementEntries[preset.element],
+                            let scancode = KeyCodeTable.scancode(for: code)
+                        {
+                            Button {
+                                dismiss()
+                                layout.addButton(label: preset.label, scancode: scancode)
+                            } label: {
+                                LabeledContent(
+                                    preset.label, value: KeyCodeTable.buttonLabel(for: code) ?? code)
+                            }
+                            .disabled(atCap)
+                        }
+                    }
+                }
                 Section("Common keys") { keyRows(EditorKeys.common + EditorKeys.special) }
                 Section("Letters") { keyRows(EditorKeys.letters) }
                 Section("Numbers") { keyRows(EditorKeys.numbers) }
@@ -106,6 +122,12 @@ private enum EditorKeys {
         )
     }
 
+    static let gamepad = [
+        (label: "A", element: "a"), (label: "B", element: "b"),
+        (label: "X", element: "x"), (label: "Y", element: "y"),
+        (label: "L", element: "leftshoulder"), (label: "R", element: "rightshoulder"),
+    ]
+
     static let common = [
         EditorKey(code: "KeyZ", hint: usualUse("Confirm")),
         EditorKey(code: "KeyX", hint: usualUse("Cancel")),
@@ -173,6 +195,17 @@ struct ControlSizeSection: View {
                 .contentShape(Rectangle())
                 .onTapGesture { onSelect(size) }
             }
+        }
+    }
+}
+
+private struct ControlVisibilitySection: View {
+    let visible: Bool
+    let onChange: (Bool) -> Void
+
+    var body: some View {
+        Section {
+            Toggle("Show during play", isOn: Binding(get: { visible }, set: onChange))
         }
     }
 }
@@ -261,6 +294,11 @@ struct ButtonEditSheet: View {
                         } label: {
                             LabeledContent("Key", value: keyName(button.scancode))
                         }
+                    }
+
+                    ControlVisibilitySection(visible: button.visible) {
+                        layout.recordEditSnapshot()
+                        layout.updateButton(id: buttonID, visible: $0)
                     }
 
                     ControlSizeSection(
@@ -366,6 +404,11 @@ struct ActionButtonEditSheet: View {
                         }
                     }
 
+                    ControlVisibilitySection(visible: button.visible) {
+                        layout.recordEditSnapshot()
+                        layout.updateActionButton(id: buttonID, visible: $0)
+                    }
+
                     ControlSizeSection(
                         sizes: ControlSizePresets.button, current: button.size
                     ) { size in
@@ -413,6 +456,11 @@ struct DPadEditSheet: View {
                         Text("Joystick").tag(MovementStyle.stick)
                     }
                     .pickerStyle(.segmented)
+                }
+
+                ControlVisibilitySection(visible: layout.dpadVisible) {
+                    layout.recordEditSnapshot()
+                    layout.dpadVisible = $0
                 }
 
                 ControlSizeSection(

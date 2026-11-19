@@ -35,7 +35,7 @@ function extractKeyCodes(swift: string): string[] {
 }
 
 function extractControllerElements(swift: string): string[] {
-  const block = swift.match(/allElements: \[String\] = \[([\s\S]*?)\]/);
+  const block = swift.match(/allElements: \[String\] =\s*\[([\s\S]*?)\]/);
   if (!block) {
     throw new Error("controller element list not found in ControlsManifest.swift");
   }
@@ -43,7 +43,11 @@ function extractControllerElements(swift: string): string[] {
   if (elements.length === 0) {
     throw new Error("no controller elements found");
   }
-  return elements;
+  // ControllerElement adds the two half-axes for each stick after the literal list.
+  const halfAxes = ["left", "right"].flatMap((stick) => [
+    `-${stick}x`, `+${stick}x`, `-${stick}y`, `+${stick}y`
+  ]);
+  return [...elements, ...halfAxes];
 }
 
 function extractActions(swift: string): EmpoActionEntry[] {
@@ -119,7 +123,7 @@ const schema = {
     action: {
       description:
         "Host action string (SPEC section 8). Valid in the bindings map. " +
-        "the touch-valid subset also works in actionButtons.",
+        "The touch-valid subset also works in actionButtons.",
       type: "string",
       enum: actions
     },
@@ -145,6 +149,11 @@ const schema = {
       type: "number",
       minimum: 0,
       maximum: 1
+    },
+    visible: {
+      description: "Show the control during play. Hidden controls remain editable.",
+      type: "boolean",
+      default: true
     },
     opacity: {
       description: "Control opacity (0.2–1.0).",
@@ -172,6 +181,7 @@ const schema = {
         x: { $ref: "#/$defs/coordinate" },
         y: { $ref: "#/$defs/coordinate" },
         size: { $ref: "#/$defs/dpadSize" },
+        visible: { $ref: "#/$defs/visible" },
         opacity: { $ref: "#/$defs/opacity" },
         style: {
           description:
@@ -190,6 +200,7 @@ const schema = {
         x: { $ref: "#/$defs/coordinate" },
         y: { $ref: "#/$defs/coordinate" },
         size: { $ref: "#/$defs/buttonSize" },
+        visible: { $ref: "#/$defs/visible" },
         opacity: { $ref: "#/$defs/opacity" }
       }
     },
@@ -207,6 +218,7 @@ const schema = {
         x: { $ref: "#/$defs/coordinate" },
         y: { $ref: "#/$defs/coordinate" },
         size: { $ref: "#/$defs/buttonSize" },
+        visible: { $ref: "#/$defs/visible" },
         opacity: { $ref: "#/$defs/opacity" }
       }
     },

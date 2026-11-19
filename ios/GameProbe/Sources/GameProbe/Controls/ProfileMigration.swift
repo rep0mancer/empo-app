@@ -46,6 +46,9 @@ public enum ProfileMaterializer {
         builtins: Builtins,
         metrics: TouchZoneMetrics
     ) -> MaterializedTouch {
+        if user == nil && manifest == nil {
+            return MaterializedTouch(portrait: builtins.portrait, landscape: builtins.landscape)
+        }
         let completedManifest = manifest.map {
             TouchSectionCompletion.complete($0, metrics: metrics).section
         }
@@ -79,8 +82,9 @@ public enum ProfileMaterializer {
         TouchLayout(
             dpad: user?.dpad ?? manifest?.dpad ?? builtin.dpad,
             buttons: user?.buttons ?? manifest?.buttons ?? builtin.buttons ?? [],
-            actionButtons: user?.actionButtons ?? manifest?.actionButtons
-                ?? builtin.actionButtons ?? []
+            // Authored layouts that predate native actions had no action buttons.
+            // Keep their geometry and let the editor add actions individually.
+            actionButtons: user?.actionButtons ?? manifest?.actionButtons ?? []
         )
     }
 }

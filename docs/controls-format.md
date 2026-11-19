@@ -165,6 +165,20 @@ controls area:
 controls that land under a notch or home indicator back into the safe
 area. You do not need to adjust for individual devices.
 
+The D-pad, game keys and action buttons each support an optional
+`visible` field. Set it to `false` to hide a control during play.
+The layout editor still shows it with a crossed-out eye. Tap the
+control and turn on **Show during play** to restore it with its saved
+position, size, opacity and binding.
+
+The built-in layout includes PokeDaisy in both orientations. To add it
+to an existing profile, choose **Add button → Empo actions → PokeDaisy**.
+The same list includes **Menu** and **Fast forward**.
+
+In **Add button → Gamepad buttons**, A, B, X, Y, L and R start with
+Enter, Escape, Left Shift, A, Q and W respectively. Each row shows
+the key it sends. You can change that key in the button editor.
+
 ### `dpad`
 
 | Field | Required | Range | Default |
@@ -172,6 +186,7 @@ area. You do not need to adjust for individual devices.
 | `x`, `y` | yes | 0.0 to 1.0 | |
 | `size` | no | 100 to 200 (points) | 140 |
 | `opacity` | no | 0.2 to 1.0 | 1.0 |
+| `visible` | no | true or false | true |
 | `style` | no | `"dpad"` or `"stick"` | `"dpad"` |
 
 Omit `dpad` to keep the default placement. You cannot remove the
@@ -196,6 +211,7 @@ Up to 21 per orientation, counted together with `actionButtons`.
 | `label` | no | 8 characters max | derived from the key |
 | `size` | no | 40 to 100 (points) | 56 |
 | `opacity` | no | 0.2 to 1.0 | 1.0 |
+| `visible` | no | true or false | true |
 
 Empo truncates labels longer than 8 characters and logs a warning.
 Two buttons may share a key. Empo allows this and logs a warning.
@@ -225,6 +241,7 @@ ignore the list and show the rest of your layout.
 | `x`, `y` | yes | 0.0 to 1.0 | |
 | `size` | no | 40 to 100 (points) | 56 |
 | `opacity` | no | 0.2 to 1.0 | 1.0 |
+| `visible` | no | true or false | true |
 
 Action buttons have no `label` field. Empo draws a fixed icon for
 each action. The 21-button cap counts `buttons` and `actionButtons`
@@ -345,6 +362,8 @@ can never hold an action.
 | `$fastForward` | Speed the game up while held | yes |
 | `$toggleFastForward` | Turn fast forward on or off | yes |
 | `$pauseMenu` | Open and close Empo's pause menu | yes |
+| `$openMenu` | Open the iOS player menu | yes |
+| `$togglePokeDaisy` | Open or close PokeDaisy on iOS | yes |
 | `$toggleCheats` | Open the cheat menu | yes |
 | `$toggleTouchControls` | Show and hide the touch controls | no |
 

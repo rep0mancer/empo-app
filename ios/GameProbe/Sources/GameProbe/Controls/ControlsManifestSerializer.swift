@@ -142,6 +142,9 @@ public enum ControlsManifestSerializer {
         if let opacity = button.opacity {
             lines.append("\(pad)  ,\"opacity\": \(formatNumber(opacity))")
         }
+        if !button.visible {
+            lines.append("\(pad)  ,\"visible\": false")
+        }
         lines.append("\(pad)}")
     }
 
@@ -158,6 +161,9 @@ public enum ControlsManifestSerializer {
         }
         if let opacity = dpad.opacity {
             lines.append("\(pad),\"opacity\": \(formatNumber(opacity))")
+        }
+        if !dpad.visible {
+            lines.append("\(pad),\"visible\": false")
         }
         // Absent and "dpad" mean the same. This keeps every existing
         // file byte stable.
@@ -198,6 +204,7 @@ public enum ControlsManifestSerializer {
         if let opacity = button.opacity {
             appendField("opacity", value: formatNumber(opacity))
         }
+        if !button.visible { appendField("visible", value: "false") }
         lines.append("\(pad)}")
     }
 
@@ -230,7 +237,7 @@ public enum ControlsManifestSerializer {
                     y: ControlLimits.coordinate.clamp(dpad.y),
                     size: dpad.size.map(ControlLimits.dpadSize.clamp),
                     opacity: dpad.opacity.map(ControlLimits.opacity.clamp),
-                    style: dpad.style)
+                    visible: dpad.visible, style: dpad.style)
             },
             buttons: buttons?.map { button in
                 let label = button.label.map {
@@ -244,7 +251,7 @@ public enum ControlsManifestSerializer {
                     x: ControlLimits.coordinate.clamp(button.x),
                     y: ControlLimits.coordinate.clamp(button.y),
                     size: button.size.map(ControlLimits.buttonSize.clamp),
-                    opacity: button.opacity.map(ControlLimits.opacity.clamp))
+                    opacity: button.opacity.map(ControlLimits.opacity.clamp), visible: button.visible)
             },
             actionButtons: actionButtons?.map { button in
                 ActionButtonSpec(
@@ -252,7 +259,7 @@ public enum ControlsManifestSerializer {
                     x: ControlLimits.coordinate.clamp(button.x),
                     y: ControlLimits.coordinate.clamp(button.y),
                     size: button.size.map(ControlLimits.buttonSize.clamp),
-                    opacity: button.opacity.map(ControlLimits.opacity.clamp))
+                    opacity: button.opacity.map(ControlLimits.opacity.clamp), visible: button.visible)
             })
     }
 

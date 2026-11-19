@@ -31,16 +31,18 @@ struct PlayerControlsOverlay: View {
             for: geo.size, safeArea: safeArea, controlsMinY: controlsMinY,
             // During a drag, the neighbors must not move under the
             // finger. Then the collision solve keeps the controls apart.
-            separate: dragOwner == nil,
+            separate: dragOwner == nil, includeHidden: editMode,
             includeActionButton: { showsActionButton($0.action) })
         ZStack {
             editGridOverlay
-            dpadView
+            if layout.dpadVisible || editMode { dpadView }
             ForEach(layout.buttons) { button in
-                actionButton(button: button, displayPosition: separatedPositions[button.id])
+                if button.visible || editMode {
+                    actionButton(button: button, displayPosition: separatedPositions[button.id])
+                }
             }
             ForEach(layout.actionButtons) { button in
-                if showsActionButton(button.action) {
+                if (button.visible || editMode) && showsActionButton(button.action) {
                     functionButton(button: button, displayPosition: separatedPositions[button.id])
                 }
             }
@@ -98,7 +100,7 @@ struct PlayerControlsOverlay: View {
             movementControl(size: size),
             subject: .dpad,
             size: size,
-            opacity: layout.dpadOpacity,
+            opacity: layout.dpadOpacity, visible: layout.dpadVisible,
             position: ControlsZone.absolutePosition(
                 for: layout.dpadRelativeCenter, in: geo.size, controlSize: size,
                 safeArea: safeArea, controlsMinY: controlsMinY, keepout: layout.toolbarKeepout),
@@ -160,7 +162,7 @@ struct PlayerControlsOverlay: View {
             ),
             subject: .control(button.id),
             size: button.size,
-            opacity: button.opacity,
+            opacity: button.opacity, visible: button.visible,
             position: resolvedPosition(
                 displayPosition, center: button.relativeCenter, size: button.size),
             onTapEdit: { editDialog = .sheet(.button(button.id)) },
@@ -208,7 +210,7 @@ struct PlayerControlsOverlay: View {
             },
             subject: .control(button.id),
             size: button.size,
-            opacity: button.opacity,
+            opacity: button.opacity, visible: button.visible,
             position: resolvedPosition(
                 displayPosition, center: button.relativeCenter, size: button.size),
             onTapEdit: { editDialog = .sheet(.actionButton(button.id)) },
@@ -245,7 +247,7 @@ struct PlayerControlsOverlay: View {
         _ control: Control,
         subject: EditDragSubject,
         size: CGFloat,
-        opacity: Double,
+        opacity: Double, visible: Bool,
         position: CGPoint,
         onTapEdit: @escaping () -> Void,
         onDelete: (() -> Void)?,
@@ -258,6 +260,16 @@ struct PlayerControlsOverlay: View {
             control
             .frame(width: size, height: size)
             .opacity(opacity)
+            .overlay {
+                if editMode && !visible {
+                    Image(systemName: "eye.slash.fill")
+                        .font(.caption.bold())
+                        .padding(4)
+                        .background(.regularMaterial, in: Capsule())
+                        .allowsHitTesting(false)
+                        .accessibilityLabel("Hidden during play")
+                }
+            }
             // A live tap recognizer, also one that does nothing, makes
             // SwiftUI wait to tell a tap from a drag on each touch. The
             // control then gets its touch-down only when the finger

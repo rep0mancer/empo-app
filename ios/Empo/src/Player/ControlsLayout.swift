@@ -19,9 +19,11 @@ struct ButtonModel: PlacedControl, Equatable {
     var relativeCenter: CGPoint
     var size: CGFloat
     var opacity: Double
+    var visible: Bool
 
     init(
-        label: String, scancode: Int32, relativeCenter: CGPoint, size: CGFloat, opacity: Double = 1.0
+        label: String, scancode: Int32, relativeCenter: CGPoint, size: CGFloat, opacity: Double = 1.0,
+        visible: Bool = true
     ) {
         self.id = UUID()
         self.label = label
@@ -29,6 +31,7 @@ struct ButtonModel: PlacedControl, Equatable {
         self.relativeCenter = relativeCenter
         self.size = size
         self.opacity = opacity
+        self.visible = visible
     }
 }
 
@@ -38,13 +41,16 @@ struct ActionButtonModel: PlacedControl, Equatable {
     var relativeCenter: CGPoint
     var size: CGFloat
     var opacity: Double
+    var visible: Bool
 
-    init(action: String, relativeCenter: CGPoint, size: CGFloat, opacity: Double = 1.0) {
+    init(action: String, relativeCenter: CGPoint, size: CGFloat, opacity: Double = 1.0, visible: Bool = true)
+    {
         self.id = UUID()
         self.action = action
         self.relativeCenter = relativeCenter
         self.size = size
         self.opacity = opacity
+        self.visible = visible
     }
 }
 
@@ -152,6 +158,7 @@ class ControlsLayout {
         var dpadRelativeCenter: CGPoint
         var dpadSize = CGFloat(ControlLimits.defaultDPadSize)
         var dpadOpacity: Double = 1.0
+        var dpadVisible = true
         var dpadStyle: MovementStyle = .dpad
         var buttons: [ButtonModel]
         var actionButtons: [ActionButtonModel] = []
@@ -175,6 +182,10 @@ class ControlsLayout {
     var dpadOpacity: Double {
         get { active.dpadOpacity }
         set { active.dpadOpacity = newValue }
+    }
+    var dpadVisible: Bool {
+        get { active.dpadVisible }
+        set { active.dpadVisible = newValue }
     }
     var dpadStyle: MovementStyle {
         get { active.dpadStyle }
@@ -585,7 +596,7 @@ class ControlsLayout {
         var matchedIDs = Set<UUID>()
         var matchedTargets = Set<Int>()
 
-        var moves: [(id: UUID, center: CGPoint, size: CGFloat)] = []
+        var moves: [(id: UUID, target: ButtonModel)] = []
         for (ti, target) in targetButtons.enumerated() {
             guard
                 let current = buttons.first(where: {
@@ -597,18 +608,12 @@ class ControlsLayout {
             matchedIDs.insert(current.id)
             matchedTargets.insert(ti)
 
-            let posChanged =
-                abs(current.relativeCenter.x - target.relativeCenter.x) > 0.001
-                || abs(current.relativeCenter.y - target.relativeCenter.y) > 0.001
-            let sizeChanged = abs(current.size - target.size) > 0.5
-            if posChanged || sizeChanged {
-                moves.append((current.id, target.relativeCenter, target.size))
-            }
+            moves.append((current.id, target))
         }
 
         var matchedActionIDs = Set<UUID>()
         var matchedActionTargets = Set<Int>()
-        var actionMoves: [(id: UUID, center: CGPoint, size: CGFloat)] = []
+        var actionMoves: [(id: UUID, target: ActionButtonModel)] = []
         for (ti, target) in targetActionButtons.enumerated() {
             guard
                 let current = actionButtons.first(where: {
@@ -619,27 +624,26 @@ class ControlsLayout {
             matchedActionIDs.insert(current.id)
             matchedActionTargets.insert(ti)
 
-            let posChanged =
-                abs(current.relativeCenter.x - target.relativeCenter.x) > 0.001
-                || abs(current.relativeCenter.y - target.relativeCenter.y) > 0.001
-            let sizeChanged = abs(current.size - target.size) > 0.5
-            if posChanged || sizeChanged {
-                actionMoves.append((current.id, target.relativeCenter, target.size))
-            }
+            actionMoves.append((current.id, target))
         }
 
         withAnimation(Motion.standard) {
             buttons.removeAll { !matchedIDs.contains($0.id) }
             for move in moves {
-                updateButton(id: move.id, size: move.size, relativeCenter: move.center)
+                updateButton(
+                    id: move.id, size: move.target.size, relativeCenter: move.target.relativeCenter,
+                    opacity: move.target.opacity, visible: move.target.visible)
             }
             actionButtons.removeAll { !matchedActionIDs.contains($0.id) }
             for move in actionMoves {
-                updateActionButton(id: move.id, size: move.size, relativeCenter: move.center)
+                updateActionButton(
+                    id: move.id, size: move.target.size, relativeCenter: move.target.relativeCenter,
+                    opacity: move.target.opacity, visible: move.target.visible)
             }
             dpadRelativeCenter = layout.dpadRelativeCenter
             dpadSize = layout.dpadSize
             dpadOpacity = layout.dpadOpacity
+            dpadVisible = layout.dpadVisible
             dpadStyle = layout.dpadStyle
         }
 
@@ -747,18 +751,21 @@ class ControlsLayout {
     /// push its neighbors.
     func separatedDisplayPositions(
         for geoSize: CGSize, safeArea: EdgeInsets, controlsMinY: CGFloat,
-        separate: Bool = true,
+        separate: Bool = true, includeHidden: Bool = false,
         includeActionButton: (ActionButtonModel) -> Bool = { _ in true }
     ) -> [UUID: CGPoint] {
         // Hidden action buttons (unavailable during play) must not
         // take part, or an invisible button pushes visible ones away.
-        let visibleActionButtons = actionButtons.filter(includeActionButton)
-        guard buttons.count + visibleActionButtons.count > 0, geoSize.width > 0,
+        let visibleButtons = buttons.filter { includeHidden || $0.visible }
+        let visibleActionButtons = actionButtons.filter {
+            (includeHidden || $0.visible) && includeActionButton($0)
+        }
+        guard visibleButtons.count + visibleActionButtons.count > 0, geoSize.width > 0,
             geoSize.height > 0
         else { return [:] }
 
         let allCircles: [(id: UUID, center: CGPoint, size: CGFloat)] =
-            buttons.map { ($0.id, $0.relativeCenter, $0.size) }
+            visibleButtons.map { ($0.id, $0.relativeCenter, $0.size) }
             + visibleActionButtons.map { ($0.id, $0.relativeCenter, $0.size) }
 
         let inputs = allCircles.map { circle -> (x: Double, y: Double, size: Double) in
@@ -822,7 +829,7 @@ class ControlsLayout {
             bandInputs,
             width: bandWidth,
             height: bandHeight,
-            obstacles: obstacles,
+            obstacles: includeHidden || dpadVisible ? obstacles : [],
             walls: walls
         )
 
@@ -1301,6 +1308,7 @@ class ControlsLayout {
             dpadRelativeCenter: CGPoint(x: dpad.x, y: dpad.y),
             dpadSize: CGFloat(dpad.size ?? ControlLimits.defaultDPadSize),
             dpadOpacity: dpad.opacity ?? 1.0,
+            dpadVisible: dpad.visible,
             dpadStyle: dpad.style,
             buttons: (layout.buttons ?? []).compactMap { spec in
                 guard let scancode = KeyCodeTable.scancode(for: spec.key) else { return nil }
@@ -1309,14 +1317,14 @@ class ControlsLayout {
                     scancode: scancode,
                     relativeCenter: CGPoint(x: spec.x, y: spec.y),
                     size: CGFloat(spec.size ?? ControlLimits.defaultButtonSize),
-                    opacity: spec.opacity ?? 1.0)
+                    opacity: spec.opacity ?? 1.0, visible: spec.visible)
             },
             actionButtons: (layout.actionButtons ?? []).map { spec in
                 ActionButtonModel(
                     action: spec.action,
                     relativeCenter: CGPoint(x: spec.x, y: spec.y),
                     size: CGFloat(spec.size ?? ControlLimits.defaultButtonSize),
-                    opacity: spec.opacity ?? 1.0)
+                    opacity: spec.opacity ?? 1.0, visible: spec.visible)
             })
     }
 
@@ -1329,7 +1337,7 @@ class ControlsLayout {
                 x: Double(controls.dpadRelativeCenter.x),
                 y: Double(controls.dpadRelativeCenter.y),
                 size: Double(controls.dpadSize),
-                opacity: controls.dpadOpacity,
+                opacity: controls.dpadOpacity, visible: controls.dpadVisible,
                 style: controls.dpadStyle),
             buttons: controls.buttons.compactMap { button in
                 guard let key = KeyCodeTable.code(for: button.scancode) else { return nil }
@@ -1339,7 +1347,7 @@ class ControlsLayout {
                     x: Double(button.relativeCenter.x),
                     y: Double(button.relativeCenter.y),
                     size: Double(button.size),
-                    opacity: button.opacity)
+                    opacity: button.opacity, visible: button.visible)
             },
             actionButtons: controls.actionButtons.map { button in
                 ActionButtonSpec(
@@ -1347,7 +1355,7 @@ class ControlsLayout {
                     x: Double(button.relativeCenter.x),
                     y: Double(button.relativeCenter.y),
                     size: Double(button.size),
-                    opacity: button.opacity)
+                    opacity: button.opacity, visible: button.visible)
             })
     }
 
@@ -1466,7 +1474,7 @@ class ControlsLayout {
 
     func updateActionButton(
         id: UUID, size: CGFloat? = nil,
-        relativeCenter: CGPoint? = nil, opacity: Double? = nil
+        relativeCenter: CGPoint? = nil, opacity: Double? = nil, visible: Bool? = nil
     ) {
         guard let index = actionButtons.firstIndex(where: { $0.id == id }) else { return }
         if let size {
@@ -1475,11 +1483,12 @@ class ControlsLayout {
         }
         if let relativeCenter { actionButtons[index].relativeCenter = relativeCenter }
         if let opacity { actionButtons[index].opacity = opacity }
+        if let visible { actionButtons[index].visible = visible }
     }
 
     func updateButton(
         id: UUID, label: String? = nil, scancode: Int32? = nil, size: CGFloat? = nil,
-        relativeCenter: CGPoint? = nil, opacity: Double? = nil
+        relativeCenter: CGPoint? = nil, opacity: Double? = nil, visible: Bool? = nil
     ) {
         guard let index = buttons.firstIndex(where: { $0.id == id }) else { return }
         if let label { buttons[index].label = label }
@@ -1489,5 +1498,6 @@ class ControlsLayout {
         }
         if let relativeCenter { buttons[index].relativeCenter = relativeCenter }
         if let opacity { buttons[index].opacity = opacity }
+        if let visible { buttons[index].visible = visible }
     }
 }

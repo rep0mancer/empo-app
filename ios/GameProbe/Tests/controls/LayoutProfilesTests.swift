@@ -672,6 +672,25 @@ final class LayoutProfilesTests: XCTestCase {
         XCTAssertNil(MigrationRecord.load(at: url))
     }
 
+    func testBuiltinHasPokeDaisyInBothOrientationsAndExistingLayoutsKeepTheirActions() {
+        func resolved(_ user: TouchSection?, _ manifest: TouchSection?) -> ProfileMaterializer.MaterializedTouch {
+            ProfileMaterializer.materialize(user: user, manifest: manifest, builtins: builtins(), metrics: .reference)
+        }
+        let builtin = resolved(nil, nil)
+        for layout in [builtin.portrait, builtin.landscape] {
+            XCTAssertEqual(layout.actionButtons?.map(\.action), ["$togglePokeDaisy"])
+            XCTAssertEqual(layout.actionButtons?.first?.visible, true)
+        }
+
+        for actions: [ActionButtonSpec]? in [nil, [], [ActionButtonSpec(action: "$pauseMenu", x: 0.5, y: 0.5)]] {
+            let existing = TouchSection(portrait: TouchLayout(actionButtons: actions))
+            for layout in [resolved(existing, nil), resolved(nil, existing)] {
+                XCTAssertEqual(layout.portrait.actionButtons, actions ?? [])
+                XCTAssertEqual(layout.landscape.actionButtons?.map(\.action), (actions ?? []).map(\.action))
+            }
+        }
+    }
+
     func testBuiltinKeyWithoutCodeKeepsTheOtherButtonsInPlace() {
         let keys = [
             BuiltinLayout.Key(label: "A", code: "Enter"),

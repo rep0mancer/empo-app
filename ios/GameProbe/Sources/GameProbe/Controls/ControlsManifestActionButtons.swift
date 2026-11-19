@@ -15,6 +15,7 @@ extension ControlsManifestLoader {
         var y: Double?
         var size: Double?
         var opacity: Double?
+        var visible = true
 
         mutating func consume(
             field: String, value: Any, path: String, findings: inout [Finding]
@@ -52,6 +53,13 @@ extension ControlsManifestLoader {
                 } else {
                     ControlsManifestLoader.appendRangeError(
                         findings: &findings, path: "\(path)/size")
+                }
+            case "visible":
+                if let flag = JSONNumber.bool(value) {
+                    visible = flag
+                } else {
+                    ControlsManifestLoader.appendTypeError(
+                        findings: &findings, path: "\(path)/visible", expected: "boolean")
                 }
             case "opacity":
                 if let number = JSONNumber.double(value) {
@@ -158,6 +166,6 @@ extension ControlsManifestLoader {
 
         return ActionButtonSpec(
             action: action, x: coords.x, y: coords.y,
-            size: placement.size, opacity: placement.opacity)
+            size: placement.size, opacity: placement.opacity, visible: placement.visible)
     }
 }

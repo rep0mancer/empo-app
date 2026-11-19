@@ -13,6 +13,26 @@ final class OrientationDerivationTests: XCTestCase {
 
     // MARK: - Derivation transform
 
+    func testHiddenControlsKeepTheirStyleAndDoNotDisplaceVisibleControls() {
+        let key = ButtonSpec(label: "A", key: "Enter", x: 0.75, y: 0.75, size: 48)
+        var portrait = TouchLayout(buttons: [key])
+        let baseline = OrientationDerivation.derive(
+            from: portrait, sourceIsLandscape: false, metrics: metrics, defaultDpad: nil)
+        portrait.dpad = DPadSpec(x: key.x, y: key.y, visible: false, style: .stick)
+        portrait.buttons?.append(ButtonSpec(key: "KeyQ", x: key.x, y: key.y, visible: false))
+        portrait.actionButtons = [
+            ActionButtonSpec(action: "$togglePokeDaisy", x: key.x, y: key.y, opacity: 0.4, visible: false)
+        ]
+        let derived = OrientationDerivation.derive(
+            from: portrait, sourceIsLandscape: false, metrics: metrics, defaultDpad: nil)
+        XCTAssertEqual(derived.buttons?.first, baseline.buttons?.first)
+        XCTAssertEqual(derived.buttons?.last?.visible, false)
+        XCTAssertEqual(derived.dpad?.visible, false)
+        XCTAssertEqual(derived.dpad?.style, .stick)
+        XCTAssertEqual(derived.actionButtons?.first?.visible, false)
+        XCTAssertEqual(derived.actionButtons?.first?.opacity, 0.4)
+    }
+
     func testActionButtonsDeriveWithButtons() {
         var portrait = samplePortraitLayout()
         portrait.actionButtons = [

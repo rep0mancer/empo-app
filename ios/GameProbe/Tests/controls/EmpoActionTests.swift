@@ -33,6 +33,8 @@ final class EmpoActionTests: XCTestCase {
                 EmpoActionCatalog.fastForwardToggle,
                 EmpoActionCatalog.pauseMenu,
                 EmpoActionCatalog.toggleCheats,
+                EmpoActionCatalog.togglePokeDaisy,
+                EmpoActionCatalog.openMenu,
             ])
         )
     }
