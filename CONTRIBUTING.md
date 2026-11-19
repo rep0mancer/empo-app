@@ -21,7 +21,7 @@ This personal branch builds MKXP from the engine commit in `cores/mkxp/.version`
 
 ```sh
 brew install bun xcodegen gh automake autoconf libtool cmake pkg-config bison
-git clone --branch personal/phase-1 https://github.com/rep0mancer/empo-app.git
+git clone --branch personal/phase-2 https://github.com/rep0mancer/empo-app.git
 cd empo-app
 bun install
 cores/mkxp/rebuild-local.sh
