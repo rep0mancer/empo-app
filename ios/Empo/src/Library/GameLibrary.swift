@@ -56,6 +56,7 @@ struct PendingImport: Identifiable, Hashable {
 enum ImportTemporaryDirectory {
     enum Kind: String {
         case stagedArchive = "staged-archives"
+        case patch = "game-patches"
         case archiveChoiceProbe = "archive-choice-probe"
         case folderImport = "folder-import"
         case archiveImport = "archive-import"

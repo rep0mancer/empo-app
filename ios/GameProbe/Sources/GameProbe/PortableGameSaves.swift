@@ -41,7 +41,7 @@ import Foundation
 /// but they are game assets, not saves.
 public enum PortableGameSaves {
 
-    private static let saveFolderNames: Set<String> = [
+    static let saveFolderNames: Set<String> = [
         "save", "saves", "save data", "savedata", "save game",
         "save games", "savegame", "savegames", "saved games",
         "saved_games", "save files", "savefiles", "save_data",

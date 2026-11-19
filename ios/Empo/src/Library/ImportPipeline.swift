@@ -491,7 +491,7 @@ final class ImportPipeline {
             uniquingKeysWith: { first, _ in first }
         )
 
-        var inFlightNames: [String] = Array(deleting)
+        var inFlightNames = Array(deleting.union(GameLibrary.shared.inFlightImports.withLock { $0 }))
         if let library {
             inFlightNames.append(contentsOf: library.pendingImports.keys)
             for entry in library.games where entry.isImporting {
@@ -1059,6 +1059,14 @@ extension GameLibrary {
         completion: @escaping @MainActor @Sendable (_ failures: [(GameLibrary.BatchSelection, Error)]) -> Void
     ) {
         ensureGamesDirectory()
+        // A patch may have claimed this game while an import confirmation was open.
+        if inFlightImports.withLock({ ids in selections.contains { ids.contains($0.importID) } }) {
+            let error = CocoaError(.fileWriteUnknown, userInfo: [
+                NSLocalizedDescriptionKey: String(localized: "Another game update is in progress.")
+            ])
+            completion(selections.map { ($0, error) })
+            return
+        }
 
         for selection in selections {
             let pendingOrder = nextPendingImportOrder

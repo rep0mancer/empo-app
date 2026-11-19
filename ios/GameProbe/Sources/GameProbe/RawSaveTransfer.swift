@@ -125,7 +125,7 @@ public struct RawSaveTransfer: Sendable {
             && !(stem.hasPrefix("map") && !stem.dropFirst(3).isEmpty
                 && stem.dropFirst(3).allSatisfy(\.isNumber))
     }
-    private static func looksLikeSaveSlot(_ name: String) -> Bool {
+    static func looksLikeSaveSlot(_ name: String) -> Bool {
         let stem = name.lowercased().components(separatedBy: ".")[0]
         return stem == "game" || stem.hasPrefix("save") || stem.hasPrefix("game_") || stem.hasPrefix("game-")
             || stem.hasPrefix("autosave")

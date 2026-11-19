@@ -244,7 +244,8 @@ public enum GameTreeUpdate {
     public static func stageAndSwap(
         newTree source: URL,
         over target: URL,
-        fm: FileManager = .default
+        fm: FileManager = .default,
+        beforeSwap: (URL) throws -> Void = { _ in }
     ) throws {
         let parent = target.deletingLastPathComponent()
         let staging = parent.appendingPathComponent(stagingDirectoryName, isDirectory: true)
@@ -269,6 +270,7 @@ public enum GameTreeUpdate {
             // crash). Metadata-only and the merge has already
             // succeeded, so this can no longer strand a half-update.
             try normalizeOwnerWritable(at: target, fm: fm)
+            try beforeSwap(staging)
             try swapStagedTree(target: target, staging: staging, backup: backup, fm: fm)
             try? fm.removeItem(at: staging)
             try? fm.removeItem(at: backup)

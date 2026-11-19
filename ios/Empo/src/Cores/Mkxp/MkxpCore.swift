@@ -265,12 +265,24 @@ struct MkxpCore: GameCore {
         // The migration can rewrite `EmpoState/mkxp.json`, which holds
         // `dataPathOrg` and `dataPathApp`.
         Self.migrateOldSettings(in: container)
-        return ManagedMkxpConfig.readDataPath(
-            stateDirectory: container.empoStateURL,
-            gameDirectory: container.gameURL
+        if let data = try? Data(contentsOf: Self.patchSaveIdentityURL(container)),
+            let parts = try? JSONDecoder().decode([String].self, from: data),
+            (1...2).contains(parts.count), parts.allSatisfy(GameContainer.isSafeFolderName)
+        { return parts }
+        return Self.declaredSaveFolder(container, tree: container.gameURL)
+    }
+
+    // An update may rename the game's INI title or change its mkxp dataPathApp.
+    // Keep this installed copy attached to the same shared save directory.
+    static func patchSaveIdentityURL(_ container: GameContainer) -> URL {
+        container.empoStateURL.appendingPathComponent("patch-save-folder.json")
+    }
+
+    static func declaredSaveFolder(_ container: GameContainer, tree: URL) -> [String] {
+        ManagedMkxpConfig.readDataPath(
+            stateDirectory: container.empoStateURL, gameDirectory: tree
         ).sharedDirectoryComponents(
-            iniTitleFallback: GameINI.gameTitle(at: container.gameURL),
-            folderNameFallback: container.folderName
+            iniTitleFallback: GameINI.gameTitle(at: tree), folderNameFallback: container.folderName
         )
     }
 
