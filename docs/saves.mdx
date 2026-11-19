@@ -51,6 +51,25 @@ If you delete Empo itself, iOS deletes the whole `Empo` folder, saves included. 
 over the old one. Do not delete it first.
 :::
 
+## Transfer RPG Maker XP saves with Files
+
+Close the game, touch and hold its library card, then open **Info → Import / Export Save**.
+Choose the directory that contains the game's save slot. Empo shows both shared and portable
+locations when applicable. If you have never saved in this copy of the game, make an in-game
+save first to identify its directory.
+
+- **Choose save files** accepts individual `.rxdata` files. **Choose a save folder** accepts an
+  unpacked folder from Runa or a PC, including nested `.rxdata` slots and `.rxdata.bak` backups.
+  Select the folder whose contents belong directly inside the chosen destination. Review the
+  filenames and tap **Import reviewed saves**. Each replaced file first gets a verified copy
+  under `Save Import Backups/<game>/<import ID>/` in Files.
+- Tap a filename to export its raw bytes in Files. **Export directory as ZIP** includes the
+  recognized save files and keeps paths relative to your selected save directory.
+
+The picker skips unrelated files and protects game asset folders. For a custom portable slot
+outside a conventional save folder, add the file to the game's backup save-file list, then
+reopen **Import / Export Save**. Use this transfer with the matching version of the game.
+
 ## Move saves in from another device
 
 Copy the save files into the folder the game uses on this device.

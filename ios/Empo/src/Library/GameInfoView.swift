@@ -29,6 +29,7 @@ struct GameInfoView: View {
     @FocusState private var isTitleFocused: Bool
 
     private let originalTitle: String
+    private let supportsRawSaves: Bool
     private let madeWith: String?
     private let coreName: String?
 
@@ -46,6 +47,7 @@ struct GameInfoView: View {
         // user back what the import originally showed, not the
         // raw Game.ini one which may be uglier.
         let core = GameCores.core(forGameAt: container.gameURL)
+        self.supportsRawSaves = core is MkxpCore && (MkxpRuntimeProbe.rgssVersion(in: container.gameURL) ?? 1) == 1
         self.originalTitle =
             meta.baseTitle
             ?? core?.defaultTitle(of: container)
@@ -187,6 +189,19 @@ struct GameInfoView: View {
                                     if row.id != runtimeRows.last?.id {
                                         Divider().padding(.leading, Spacing.xl)
                                     }
+                                }
+                            }
+                        }
+
+                        if let container, supportsRawSaves {
+                            GroupedSection {
+                                NavigationLink {
+                                    RawSaveTransferView(container: container)
+                                } label: {
+                                    Label("Import / Export Save", systemImage: "arrow.up.arrow.down")
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding(.horizontal, Spacing.xl)
+                                        .padding(.vertical, Spacing.lg)
                                 }
                             }
                         }

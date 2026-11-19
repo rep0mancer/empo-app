@@ -31,6 +31,9 @@ struct GameStart {
         guard let coreBinaryURL = core.binaryURL else {
             throw Failure(errorDescription: core.notInThisBuildMessage)
         }
+        #if os(iOS)
+        try GameRawSaves.recover(container, core: core)
+        #endif
         SaveMigration.migrateLegacySavesIfNeeded(for: container)
         try container.ensureSubdirs()
         self.container = container

@@ -31,7 +31,7 @@ final class RestoreCoordinator {
 
     func availability(gameKey: String) -> RestoreAvailability {
         RestorePicker.availability(
-            runInFlight: running?.gameKey == gameKey || BackupRunMonitor.shared.isRunning,
+            runInFlight: running?.gameKey == gameKey || BackupRunMonitor.shared.isRunning || GameRawSaves.isTransferring,
             gameIsPlaying: BackupDeviceConditions.isSessionLive)
     }
 
@@ -167,6 +167,9 @@ final class RestoreCoordinator {
         movedAsideTree: String?,
         manifest readManifest: @escaping @MainActor () async -> SnapshotManifest?
     ) async -> RestoreOutcome {
+        guard !GameRawSaves.isTransferring else {
+            return .failed(String(localized: "A save transfer is running. Wait for it to finish, then try again."))
+        }
         guard running == nil else {
             return .failed(
                 String(localized: "Another restore is running. Wait for it to finish, then try again."))
