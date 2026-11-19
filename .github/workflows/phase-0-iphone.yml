@@ -1,0 +1,31 @@
+name: Phase 0 iPhone build
+on:
+  push:
+    branches: [audit/phase-0-ios]
+permissions:
+  contents: read
+jobs:
+  baseline:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 3f71fe667fff30f438912f524215a33943e4eb23
+          persist-credentials: false
+      - uses: ./.github/actions/prepare-xcode-project
+      - name: Build the unmodified Empo scheme for a generic iPhone
+        shell: bash
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_26.4.1.app/Contents/Developer
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 3f71fe667fff30f438912f524215a33943e4eb23
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          xcodebuild -project ios/Empo/Empo.xcodeproj -scheme Empo -configuration Debug -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/empo-device" CODE_SIGNING_ALLOWED=NO build
+          app="$RUNNER_TEMP/empo-device/Build/Products/Debug-iphoneos/Empo.app"
+          test -f "$app/Empo"
+          test -f "$app/Frameworks/MkxpCore.framework/MkxpCore"
+          file "$app/Empo" "$app/Frameworks/MkxpCore.framework/MkxpCore"
+          xcrun vtool -show-build "$app/Empo"
