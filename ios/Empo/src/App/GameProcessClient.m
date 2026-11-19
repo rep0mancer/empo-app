@@ -58,6 +58,14 @@ static gamecore_SaveEventCallback gSaveCallback;
 static void *gSaveUserdata;
 static gamecore_TelemetryCallback gTelemetryCallback;
 static void *gTelemetryUserdata;
+static gamecore_TranslationCallback gTranslationCallback;
+static void *gTranslationUserdata;
+static uint64_t gTranslationGeneration;
+// Relay IDs occupy the upper half of the range and live across helper sessions.
+static uint64_t gTranslationSerial = UINT64_C(1) << 63;
+static uint64_t gTranslationPending;
+typedef void (^TranslationReply)(NSData *);
+static TranslationReply gTranslationReply;
 static gamecore_PausedCallback gPausedCallback;
 static void *gPausedUserdata;
 static gamecore_ResumedCallback gResumedCallback;
@@ -88,13 +96,17 @@ static id<EmpoGameProcess> proxyOf(NSXPCConnection *connection) {
     }];
 }
 
-void EmpoGameProcessSend(void (^call)(id<EmpoGameProcess> process)) {
-    os_unfair_lock_lock(&gLock);
+static void sendLocked(Call call) {
     if (gConnection != nil) {
         call(proxyOf(gConnection));
     } else if (gOpen) {
         [gWaiting addObject:call];
     }
+}
+
+void EmpoGameProcessSend(Call call) {
+    os_unfair_lock_lock(&gLock);
+    sendLocked(call);
     os_unfair_lock_unlock(&gLock);
 }
 
@@ -147,6 +159,8 @@ static gamecore_EngineTerminatedCallback loseProcess(void **userdata) {
         return NULL;
     }
     gTerminated = YES;
+    gTranslationReply = nil;
+    gTranslationPending = 0;
     gExitedCleanly = NO;
     *userdata = gTerminatedUserdata;
     return gTerminatedCallback;
@@ -195,13 +209,18 @@ static BOOL fromSession(NSXPCConnection *connection, void (^body)(void)) {
 - (void)engineTerminatedCleanly:(BOOL)clean hung:(BOOL)hung {
     __block gamecore_EngineTerminatedCallback callback = NULL;
     __block void *userdata = NULL;
+    __block TranslationReply pending = nil;
     fromSession(self.connection, ^{
+        pending = gTranslationReply;
+        gTranslationReply = nil;
+        gTranslationPending = 0;
         gTerminated = YES;
         gExitedCleanly = clean;
         gHung = hung;
         callback = gTerminatedCallback;
         userdata = gTerminatedUserdata;
     });
+    if (pending) pending(nil);
     if (callback != NULL) {
         callback(userdata);
     }
@@ -267,6 +286,24 @@ static BOOL fromSession(NSXPCConnection *connection, void (^body)(void)) {
     if (callback != NULL) {
         callback((GameCoreSaveEvent)event, detail.UTF8String, userdata);
     }
+}
+
+- (void)translateText:(NSData *)text receiver:(uint64_t)generation reply:(TranslationReply)reply {
+    __block BOOL accepted = NO;
+    __block TranslationReply expired = nil;
+    fromSession(self.connection, ^{
+        if (gTerminated || !gTranslationCallback || generation != gTranslationGeneration ||
+            ![text isKindOfClass:NSData.class] || !text.length || text.length > GAMECORE_MAX_TRANSLATION_BYTES)
+            return;
+        // A subsequent line can arrive after its predecessor timed out in the VM.
+        expired = gTranslationReply;
+        gTranslationReply = [reply copy];
+        gTranslationPending = ++gTranslationSerial;
+        gTranslationCallback(gTranslationPending, text.bytes, text.length, gTranslationUserdata);
+        accepted = YES;
+    });
+    if (expired) expired(nil);
+    if (!accepted) reply(nil);
 }
 
 - (void)telemetrySnapshot:(NSData *)json {
@@ -383,6 +420,10 @@ static xpc_object_t lentMemory(void) {
     gWaiting = [NSMutableArray new];
     gTelemetryCallback = NULL;
     gTelemetryUserdata = NULL;
+    gTranslationCallback = NULL;
+    gTranslationUserdata = NULL;
+    gTranslationReply = nil;
+    gTranslationPending = 0;
     gStatus = @{};
     gStatusAsked = NO;
     gTextInputActive = NO;
@@ -465,6 +506,11 @@ static xpc_object_t lentMemory(void) {
     os_unfair_lock_lock(&gLock);
     NSXPCConnection *connection = gConnection;
     gOpen = NO;
+    TranslationReply pending = gTranslationReply;
+    gTranslationReply = nil;
+    gTranslationPending = 0;
+    gTranslationCallback = NULL;
+    gTranslationUserdata = NULL;
     gConnection = nil;
     [gWaiting removeAllObjects];
     if (connection != nil) {
@@ -473,6 +519,7 @@ static xpc_object_t lentMemory(void) {
         [proxyOf(connection) quit];
     }
     os_unfair_lock_unlock(&gLock);
+    if (pending) pending(nil);
     if (connection == nil) {
         exited();
         return;
@@ -579,6 +626,35 @@ int gameprocess_isEngineHung(void) {
     BOOL hung = gHung;
     os_unfair_lock_unlock(&gLock);
     return hung;
+}
+
+void gameprocess_setTranslationCallback(gamecore_TranslationCallback cb, void *userdata) {
+    os_unfair_lock_lock(&gLock);
+    TranslationReply pending = gTranslationReply;
+    gTranslationPending = 0;
+    gTranslationReply = nil;
+    gTranslationCallback = cb;
+    gTranslationUserdata = userdata;
+    uint64_t generation = ++gTranslationGeneration;
+    sendLocked(^(id<EmpoGameProcess> process) { [process setTranslationReceiver:cb ? generation : 0]; });
+    os_unfair_lock_unlock(&gLock);
+    if (pending) pending(nil);
+}
+
+void gameprocess_completeTranslation(uint64_t id, const char *bytes, size_t length) {
+    os_unfair_lock_lock(&gLock);
+    TranslationReply reply = nil;
+    if (id && id == gTranslationPending && gOpen && !gTerminated) {
+        reply = gTranslationReply;
+        gTranslationReply = nil;
+        gTranslationPending = 0;
+    }
+    os_unfair_lock_unlock(&gLock);
+    if (reply) {
+        NSData *answer = bytes && length && length <= GAMECORE_MAX_TRANSLATION_BYTES
+                       ? [NSData dataWithBytes:bytes length:length] : nil;
+        reply(answer);
+    }
 }
 
 void gameprocess_setTelemetryCallback(gamecore_TelemetryCallback cb, void *userdata) {

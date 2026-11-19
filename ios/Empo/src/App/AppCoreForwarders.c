@@ -115,7 +115,7 @@ static void *coreSymbol(const char *symbol) {
         fn args;                                                                                             \
     }
 
-// Optional callbacks are set only at session boundaries.
+// Older frameworks omit optional host features.
 #define GAMECORE_OPTIONAL_VOID(name, params, args)                                                           \
     void gameprocess_##name params;                                                                          \
     void gamecore_##name params {                                                                            \

@@ -35,6 +35,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setDebugLogPath:(nullable NSString *)path;
 - (void)setRespectsSilentMode:(BOOL)respects;
 - (void)setTelemetryEnabled:(BOOL)enabled;
+- (void)setTranslationReceiver:(uint64_t)generation;
 
 // The answers of the gamecore_* getters. The keys are in
 // EmpoGameProcessStatus* below.
@@ -56,6 +57,7 @@ NS_ASSUME_NONNULL_BEGIN
 // event is a GameCoreSaveEvent.
 - (void)saveEvent:(int)event detail:(NSString *)detail;
 - (void)telemetrySnapshot:(NSData *)json;
+- (void)translateText:(NSData *)text receiver:(uint64_t)generation reply:(void (^)(NSData *_Nullable answer))reply;
 // The snapshot is RGBA, width * height * 4 bytes, or nil.
 - (void)pausedWithSnapshot:(nullable NSData *)rgba width:(int)width height:(int)height;
 - (void)resumed;

@@ -27,6 +27,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 // Key codes. Each value is the USB HID usage ID of the key on the
 // keyboard page (0x07).
@@ -140,6 +141,11 @@ typedef void (*gamecore_SaveEventCallback)(GameCoreSaveEvent event, const char *
 // UTF-8 JSON is borrowed for the callback's duration on the VM or relay thread.
 #define GAMECORE_MAX_TELEMETRY_BYTES 65536
 typedef void (*gamecore_TelemetryCallback)(const char *bytes, size_t length, void *userdata);
+
+// Borrowed UTF-8 bytes. The callback must only copy/queue work and return.
+// Never reenter the core from the callback. Replacing it retires old userdata.
+#define GAMECORE_MAX_TRANSLATION_BYTES 16384
+typedef void (*gamecore_TranslationCallback)(uint64_t id, const char *bytes, size_t length, void *userdata);
 
 // Fires on engine thread when paused (snapshot captured, audio suspended).
 typedef void (*gamecore_PausedCallback)(void *userdata);
@@ -357,6 +363,11 @@ void gamecore_setSaveEventCallback(gamecore_SaveEventCallback cb, void *userdata
 // Optional in older frameworks. Pass NULL to unsubscribe. Only copy the
 // borrowed bytes in the callback. Keep userdata valid for in-flight calls.
 void gamecore_setTelemetryCallback(gamecore_TelemetryCallback cb, void *userdata);
+
+// Set before launching the game. Complete asynchronously, with NULL/zero
+// on failure. Replies after timeout, unsubscribe, or session reset are ignored.
+void gamecore_setTranslationCallback(gamecore_TranslationCallback cb, void *userdata);
+void gamecore_completeTranslation(uint64_t id, const char *bytes, size_t length);
 
 // Pause / Resume (UI <-> Engine).
 //   1. UI calls `gamecore_requestPause()`

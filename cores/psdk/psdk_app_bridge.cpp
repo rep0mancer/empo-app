@@ -608,6 +608,17 @@ void gamecore_setErrorMessageCallback(gamecore_ErrorMessageCallback, void *) {
 void gamecore_setInfoMessageCallback(gamecore_InfoMessageCallback, void *) {
 }
 
+void gamecore_setTranslationCallback(gamecore_TranslationCallback cb, void *userdata) {
+    (void)cb;
+    (void)userdata;
+}
+
+void gamecore_completeTranslation(uint64_t id, const char *bytes, size_t length) {
+    (void)id;
+    (void)bytes;
+    (void)length;
+}
+
 void gamecore_setTelemetryCallback(gamecore_TelemetryCallback, void *) {
 }
 

@@ -157,6 +157,20 @@ static void onSaveEvent(GameCoreSaveEvent event, const char *detail, void *userd
     [host() saveEvent:event detail:text(detail)];
 }
 
+static void onTranslation(uint64_t request, const char *bytes, size_t length, void *userdata) {
+    if (!bytes || !length || length > GAMECORE_MAX_TRANSLATION_BYTES) return;
+    @autoreleasepool {
+        [host() translateText:[NSData dataWithBytes:bytes length:length]
+                     receiver:(uint64_t)(uintptr_t)userdata
+                        reply:^(NSData *answer) {
+            if ([answer isKindOfClass:NSData.class] && answer.length <= GAMECORE_MAX_TRANSLATION_BYTES)
+                gamecore_completeTranslation(request, answer.bytes, answer.length);
+            else
+                gamecore_completeTranslation(request, NULL, 0);
+        }];
+    }
+}
+
 static void onTelemetry(const char *bytes, size_t length, void *userdata) {
     if (bytes != NULL && length > 0 && length <= GAMECORE_MAX_TELEMETRY_BYTES) {
         @autoreleasepool {
@@ -288,6 +302,12 @@ void EmpoGameProcessSceneHasSize(void) {
         gamecore_setFrameRenderedCallback(onFrameRendered, NULL);
         NSLog(@"[game-process] %d opened %@", getpid(), framework);
         reply(nil);
+    });
+}
+
+- (void)setTranslationReceiver:(uint64_t)generation {
+    EmpoGameProcessOnMain(^{
+        gamecore_setTranslationCallback(generation ? onTranslation : NULL, (void *)(uintptr_t)generation);
     });
 }
 

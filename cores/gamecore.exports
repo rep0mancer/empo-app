@@ -1,5 +1,6 @@
 _gamecore_applySessionConfig
 _gamecore_clearHostViewportRegion
+_gamecore_completeTranslation
 _gamecore_copySnapshotRGBA
 _gamecore_didEngineExitCleanly
 _gamecore_getAverageFPS
@@ -44,6 +45,7 @@ _gamecore_setShowViewportBounds
 _gamecore_setTelemetryCallback
 _gamecore_setTextInputModeCallback
 _gamecore_setTouchMouseEnabled
+_gamecore_setTranslationCallback
 _gamecore_setViewportBoundsColor
 _gamecore_signalErrorDismissed
 _gamecore_signalInfoDismissed

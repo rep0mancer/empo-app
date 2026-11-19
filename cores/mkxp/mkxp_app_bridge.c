@@ -173,6 +173,16 @@ void gamecore_setTelemetryCallback(gamecore_TelemetryCallback cb, void *userdata
     mkxp_setTelemetryCallback(cb, userdata);
 }
 
+_Static_assert(GAMECORE_MAX_TRANSLATION_BYTES == MKXP_MAX_TRANSLATION_BYTES, "translation limits differ");
+
+void gamecore_setTranslationCallback(gamecore_TranslationCallback cb, void *userdata) {
+    mkxp_setTranslationCallback(cb, userdata);
+}
+
+void gamecore_completeTranslation(uint64_t id, const char *bytes, size_t length) {
+    mkxp_completeTranslation(id, bytes, length);
+}
+
 void gamecore_requestPause(void) {
     mkxp_requestPause();
 }

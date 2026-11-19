@@ -363,6 +363,17 @@ void gamecore_setInfoMessageCallback(gamecore_InfoMessageCallback cb, void *user
     gInfoMessage = (Callback){(void *)cb, userdata};
 }
 
+void gamecore_setTranslationCallback(gamecore_TranslationCallback cb, void *userdata) {
+    (void)cb;
+    (void)userdata;
+}
+
+void gamecore_completeTranslation(uint64_t id, const char *bytes, size_t length) {
+    (void)id;
+    (void)bytes;
+    (void)length;
+}
+
 void gamecore_setTelemetryCallback(gamecore_TelemetryCallback cb, void *userdata) {
     (void)cb;
     (void)userdata;

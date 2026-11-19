@@ -107,8 +107,9 @@ function forwarderList(functions: CoreFunction[]): string {
   const lines = functions.map((fn) => {
     const params = `(${parameterList(fn)})`;
     const args = `(${fn.parameters.map((p) => p.name).join(", ")})`;
-    // Older core frameworks can run without the companion callback.
-    const voidMacro = fn.name === "setTelemetryCallback" ? "GAMECORE_OPTIONAL_VOID" : "GAMECORE_VOID";
+    // Older frameworks can run without telemetry and dialogue translation.
+    const optional = ["setTelemetryCallback", "setTranslationCallback", "completeTranslation"].includes(fn.name);
+    const voidMacro = optional ? "GAMECORE_OPTIONAL_VOID" : "GAMECORE_VOID";
     return fn.returnType === "void"
       ? `${voidMacro}(${fn.name}, ${params}, ${args})`
       : `GAMECORE_FUNCTION(${fn.returnType}, ${fn.name}, ${params}, ${args})`;
