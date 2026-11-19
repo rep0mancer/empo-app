@@ -22,6 +22,10 @@ This branch builds on Mateo M.’s Empo and Apple-mobile MKXP-Z engine. The Part
 
 Tap the PokeDaisy control during a game, or choose **More → PokeDaisy**. In portrait, the game stays playable above the dashboard. In landscape, the drawer pauses play until you dismiss it. The Battle tab compares the active battlers’ types using the fangame’s type chart. Route percentages are relative to the selected encounter method.
 
+To translate an RPG Maker XP game on iPhone, long-press it in the Library and open **Settings → Dialogue translation**. Choose **Spanish → German** or **English → German**, download the languages if prompted, and launch the game. Empo uses Apple’s on-device translator for supported dialogue windows, choices and battle messages. If a line cannot be translated in time, the game shows its original text. Translation defaults to **Off** for each game.
+
+To speed up play, enable **Settings → Gameplay → Fast forward** for that game and select a multiplier from **2× to 9×**. Toggle **Fast forward** in the in-game **More** menu.
+
 RPG Maker XP games also have **Patches & Updates** and save transfer in Game Info. The personal engine is built locally. [Source build instructions](CONTRIBUTING.md#build)
 
 ## Demo
