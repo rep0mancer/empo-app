@@ -37,6 +37,7 @@ final class EngineSessionCoordinator {
     private let sessionLogger = SessionLogger()
     private var lifecycleGeneration = 0
     private nonisolated static let telemetryInbox = TelemetryInbox()
+    private var dialogueTranslation: DialogueTranslationService?
     private var textInputModeHandler: ((Bool) -> Void)?
     /// The core `openCore` opened, or nil before it runs. The player
     /// UI reads this to hide a row the running core does not answer.
@@ -136,6 +137,7 @@ final class EngineSessionCoordinator {
     /// Kills a paused or ended game, so that the next one can start.
     /// The pause or the end already recorded its play time.
     func killSession(of game: GameEntry?) {
+        endDialogueTranslation()
         endTelemetry()
         lifecycleGeneration += 1
         if let container = game?.container {
@@ -170,6 +172,7 @@ final class EngineSessionCoordinator {
             crashTracker: crashTracker,
             sessionLogger: sessionLogger
         )
+        startDialogueTranslation(source: input.settings.dialogueTranslationSource)
         // The runtime watch of SPEC 3.6 takes its first reading of
         // the game tree here, so the difference at session end names
         // what the game wrote.
@@ -368,6 +371,60 @@ final class EngineSessionCoordinator {
             }, token)
     }
 
+    // Called after gamecore_resetSessionState and before the game path is
+    // started, so the Ruby bootstrap can opt in during this launch.
+    private func startDialogueTranslation(source: String?) {
+        dialogueTranslation?.stop()
+        dialogueTranslation = nil
+        guard openedCore is MkxpCore else { return }
+        let generation = lifecycleGeneration
+        dialogueTranslation = DialogueTranslationService(
+            source: source, byteLimit: Int(GAMECORE_MAX_TRANSLATION_BYTES)
+        ) { [weak self] ticket, result in
+            guard let self, self.lifecycleGeneration == generation else { return }
+            if let result {
+                result.withCString { gamecore_completeTranslation(ticket, $0, result.utf8.count) }
+            } else {
+                gamecore_completeTranslation(ticket, nil, 0)
+            }
+        }
+        guard dialogueTranslation != nil else {
+            gamecore_setTranslationCallback(nil, nil)
+            return
+        }
+        gamecore_setTranslationCallback(
+            { @Sendable ticket, bytes, length, context in
+                // Native owns the buffer only for this callback, and can call
+                // from an RGSS or XPC queue. Dispatch even immediate failures
+                // so the native bridge is never reentered inside the callback.
+                let generation = Int(bitPattern: context)
+                let message: String?
+                if let bytes, length > 0, length <= Int(GAMECORE_MAX_TRANSLATION_BYTES) {
+                    message = String(data: Data(bytes: bytes, count: length), encoding: .utf8)
+                } else {
+                    message = nil
+                }
+                Task { @MainActor in
+                    let coordinator = EngineSessionCoordinator.shared
+                    guard coordinator.lifecycleGeneration == generation,
+                        let translator = coordinator.dialogueTranslation
+                    else { return }
+                    if let message {
+                        translator.receive(ticket, input: message)
+                    } else {
+                        gamecore_completeTranslation(ticket, nil, 0)
+                    }
+                }
+            }, UnsafeMutableRawPointer(bitPattern: generation))
+    }
+
+    private func endDialogueTranslation() {
+        guard let translator = dialogueTranslation else { return }
+        dialogueTranslation = nil
+        gamecore_setTranslationCallback(nil, nil)
+        translator.stop()
+    }
+
     private func endTelemetry() {
         Self.telemetryInbox.reset()
         if openedCore is MkxpCore {
@@ -377,6 +434,7 @@ final class EngineSessionCoordinator {
     }
 
     private func handleEngineTerminated() {
+        endDialogueTranslation()
         endTelemetry()
         lifecycleGeneration += 1
         recordSessionPlayTime()
