@@ -315,8 +315,9 @@ final class EngineSessionCoordinator {
         EssentialsTelemetryStore.shared.reset()
         if openedCore is MkxpCore {
             Self.telemetryInbox.reset(to: lifecycleGeneration)
+            // The VM or XPC queue enters this closure outside the main actor.
             gamecore_setTelemetryCallback(
-                { bytes, count, context in
+                { @Sendable bytes, count, context in
                     let generation = Int(bitPattern: context)
                     let inbox = EngineSessionCoordinator.telemetryInbox
                     guard inbox.offer(bytes, count: count, generation: generation) else { return }
