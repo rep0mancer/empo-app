@@ -42,6 +42,20 @@ final class SessionPauseHoldsTests: XCTestCase {
         XCTAssertTrue(holds.isParked)
     }
 
+    func testResigningActiveThenEnteringBackgroundNeedsOnlyOneResume() {
+        var holds = SessionPauseHolds()
+        _ = holds.didStart()
+        XCTAssertEqual(holds.set(.background, active: true), .pause)
+        XCTAssertFalse(holds.isRunning)
+        XCTAssertEqual(holds.didPause(), .none)
+        XCTAssertEqual(holds.set(.background, active: true), .none)
+        XCTAssertFalse(holds.countsPlayTime)
+        XCTAssertEqual(holds.set(.background, active: false), .resume)
+        XCTAssertFalse(holds.isRunning)
+        XCTAssertEqual(holds.didResume(), .none)
+        XCTAssertTrue(holds.isRunning)
+    }
+
     func testMenuBackgroundAndLibraryShareOnePause() {
         var holds = SessionPauseHolds()
         XCTAssertEqual(holds.didStart(), .none)

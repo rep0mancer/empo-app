@@ -212,6 +212,9 @@ struct RootView: View {
             _, open in
             appState.setPauseHold(.systemSheet, active: open)
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
+            appState.setPauseHold(.background, active: true)
+        }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) {
             _ in
             appState.setPauseHold(.background, active: true)

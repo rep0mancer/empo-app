@@ -111,8 +111,11 @@ final class HeldKeysTests: XCTestCase {
         events.removeAll()
 
         keys.release { $0 == "controller" }
+        XCTAssertEqual(events, [Event(scancode: 40, pressed: false)])
         keys.release(41, by: "controller")
-        XCTAssertEqual(events.filter { $0.scancode == 41 }, [])
+        XCTAssertEqual(events.count, 1)
+        keys.release(41, by: "touch", notBefore: .zero)
+        XCTAssertEqual(events.last, Event(scancode: 41, pressed: false))
     }
 
     func testClearReleasesEveryKeyAndForgetsTheHolders() {

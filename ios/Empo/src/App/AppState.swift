@@ -37,7 +37,7 @@ class AppState {
     var infoMessage: String?
     @ObservationIgnored private var saveLoad: SaveLoad?
     var engineReady = false
-    private var isInBackground = false
+    private var applicationInactive = false
     /// The latest release-check result for sideload/dev builds.
     /// `RootView` fills it at launch. Settings and the library banner
     /// read it.
@@ -151,7 +151,7 @@ class AppState {
         )
 
         setPauseHold(
-            .background, active: isInBackground || UIApplication.shared.applicationState == .background)
+            .background, active: applicationInactive || UIApplication.shared.applicationState != .active)
 
         // The hop to the next main-actor turn lets SwiftUI commit
         // `phase = .loading` before the engine takes the path.
@@ -288,7 +288,7 @@ class AppState {
     }
 
     func setPauseHold(_ reason: SessionPauseHolds.Reason, active: Bool) {
-        if reason == .background { isInBackground = active }
+        if reason == .background { applicationInactive = active }
         guard selectedGame != nil else { return }
         applyPauseCommand(EngineState.shared.pauseHolds.set(reason, active: active))
     }

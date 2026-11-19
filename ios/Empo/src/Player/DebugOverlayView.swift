@@ -85,10 +85,9 @@ final class DebugOverlayState {
 
 struct DebugOverlayView: View {
     let state: DebugOverlayState
-    @Environment(\.scenePhase) private var scenePhase
 
     private var canSample: Bool {
-        scenePhase == .active && EngineState.shared.pauseHolds.isRunning
+        EngineState.shared.pauseHolds.isRunning
     }
 
     var body: some View {

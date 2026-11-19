@@ -74,11 +74,11 @@ public final class HeldKeys<Holder: Hashable> {
         keys[scancode] = key
     }
 
-    /// Lets go of every key that the matching holders hold.
+    /// Immediately releases matching holders when an input source loses focus.
     public func release(where matches: (Holder) -> Bool) {
         for (scancode, key) in keys {
             for holder in key.holders where matches(holder) {
-                release(scancode, by: holder)
+                release(scancode, by: holder, notBefore: .zero)
             }
         }
     }
