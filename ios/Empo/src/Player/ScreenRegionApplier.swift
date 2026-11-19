@@ -21,6 +21,7 @@ final class ScreenRegionApplier {
     /// An invalid file in the chain logs its findings once for each
     /// session, not on each rotation and pin change.
     private var loggedFindingSignatures: Set<String> = []
+    private var companionRegion: ScreenRegion?
     private var animationTask: Task<Void, Never>?
 
     /// The aspect of the game picture, from the gameRect that the
@@ -35,6 +36,7 @@ final class ScreenRegionApplier {
     func beginSession(container: GameContainer) {
         animationTask?.cancel()
         activeContainer = container
+        companionRegion = nil
         previewActive = false
         resolutionCache = nil
         gameAspect = nil
@@ -48,6 +50,7 @@ final class ScreenRegionApplier {
         // the regions of the old game into the engine.
         animationTask?.cancel()
         activeContainer = nil
+        companionRegion = nil
         previewActive = false
         resolutionCache = nil
         gamecore_clearHostViewportRegion()
@@ -58,12 +61,25 @@ final class ScreenRegionApplier {
     /// The engine holds one region. Rotation applies again through the
     /// geometry change of the player.
     func apply() {
-        guard activeContainer != nil, !previewActive, let resolved = resolve() else { return }
+        guard activeContainer != nil, !previewActive else { return }
+        if let companionRegion {
+            send(companionRegion, isPortrait: true)
+            return
+        }
+        guard let resolved = resolve() else { return }
         let portrait = windowIsPortrait
         let placement = (portrait ? resolved.portrait : resolved.landscape).placement
         // Without a game aspect, a preset gives no region, and the
         // engine stays on automatic placement.
         send(placement.flatMap { region(for: $0) }, isPortrait: portrait)
+    }
+
+    /// This takes precedence over profile updates for the duration of a
+    /// portrait split. Removing it restores the current orientation's profile.
+    func setCompanionRegion(_ region: ScreenRegion?) {
+        guard region != companionRegion else { return }
+        companionRegion = region
+        apply()
     }
 
     func resolvedPlacement(isPortrait: Bool) -> ScreenPlacement? {

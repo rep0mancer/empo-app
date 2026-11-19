@@ -10,6 +10,8 @@ struct PlayerView: View {
     var layout: ControlsLayout
     @Environment(\.pauseManager) private var pauseManager
     @Environment(\.appSettings) private var settings
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     private var editMode: Bool { layout.editSessionActive }
     @State private var controlsHidden = false
     @State private var keyboardMode = false
@@ -37,13 +39,19 @@ struct PlayerView: View {
     @State private var showLayoutProfilePicker = false
     @State private var showLayoutSaveFailure = false
 
-    private var hasModalOverlay: Bool {
-        nativeSheetIsPresenting || showControllerRemap || showLayoutProfilePicker || showPokeDaisy
+    private var drawerPresented: Bool {
+        showPokeDaisy && layout.currentOrientation == .landscape
+    }
+
+    private var blockingPlayerUI: Bool {
+        nativeSheetIsPresenting || showControllerRemap || showLayoutProfilePicker
             || editMode || editDialog != nil || showLayoutSaveFailure
     }
 
+    private var hasModalOverlay: Bool { blockingPlayerUI || drawerPresented }
+
     private var dismissAction: String? {
-        guard showPokeDaisy, !engineState.pauseHolds.contains(.background),
+        guard drawerPresented, !blockingPlayerUI, !engineState.pauseHolds.contains(.background),
             !engineState.pauseHolds.contains(.library), !engineState.pauseHolds.contains(.systemSheet)
         else { return nil }
         return EmpoActionCatalog.togglePokeDaisy
@@ -54,18 +62,32 @@ struct PlayerView: View {
             let safeArea = AppWindow.currentSafeArea
             let canvas = ScreenCanvas(size: geo.size, safeArea: safeArea)
             let isPortrait = canvas.isPortrait
+            let companion =
+                showPokeDaisy
+                ? PokeDaisyLayout(canvas: canvas, touchControlsVisible: !controlsHidden) : nil
+            let dock = isPortrait ? companion : nil
+            let playHeight = dock?.panel.minY ?? geo.size.height
             let gameRect = engineState.gameRect
             let toolbarBtnSize = IconButtonSize.sm.points
             let activeScreenPlacement = layout.effectiveScreenPlacement(
                 stored: layout.screenRegion.resolvedPlacement(isPortrait: isPortrait))
             let forcedOverlay = activeScreenPlacement?.overlay
-            let controlsMinY = ControlsZone.toolbarBottomY(
-                isPortrait: isPortrait, gameRect: gameRect, safeArea: safeArea,
-                btnSize: toolbarBtnSize,
-                geoHeight: geo.size.height, forcedOverlay: forcedOverlay)
+            let controlsMinY =
+                dock.map {
+                    max(
+                        safeArea.top,
+                        $0.panel.minY - max(layout.requiredEditZoneHeight, $0.controlsBandHeight))
+                }
+                ?? ControlsZone.toolbarBottomY(
+                    isPortrait: isPortrait, gameRect: gameRect, safeArea: safeArea, btnSize: toolbarBtnSize,
+                    geoHeight: geo.size.height, forcedOverlay: forcedOverlay)
             let toolbarPlacement = PlayerToolbar.placement(
                 isPortrait: isPortrait, safeArea: safeArea, geoSize: geo.size)
-            let controlsSafeArea = ControlsZone.controlsSafeArea(safeArea, toolbar: toolbarPlacement)
+            let controlsSafeArea = ControlsZone.controlsSafeArea(
+                EdgeInsets(
+                    top: safeArea.top, leading: safeArea.leading, bottom: dock == nil ? safeArea.bottom : 0,
+                    trailing: safeArea.trailing),
+                toolbar: toolbarPlacement)
             let toolbarKeepout = ControlsZone.toolbarKeepout(toolbarPlacement, geoSize: geo.size)
             let screenContext = editMode ? screenGizmoContext(canvas: canvas, gameRect: gameRect) : nil
 
@@ -121,23 +143,27 @@ struct PlayerView: View {
                 if !controlsHidden && (editMode || engineState.pauseHolds.isRunning)
                     && (controlsVisible || resumeSnapshot == nil)
                 {
-                    PlayerControlsOverlay(
-                        layout: layout,
-                        actions: actions,
-                        geo: geo,
-                        controlsMinY: controlsMinY,
-                        editMode: editMode,
-                        safeArea: controlsSafeArea,
-                        editDialog: $editDialog,
-                        keys: EngineSessionCoordinator.shared.heldKeys
-                    )
+                    GeometryReader { controlsGeometry in
+                        PlayerControlsOverlay(
+                            layout: layout,
+                            actions: actions,
+                            geo: controlsGeometry,
+                            controlsMinY: controlsMinY,
+                            editMode: editMode,
+                            safeArea: controlsSafeArea,
+                            editDialog: $editDialog,
+                            keys: EngineSessionCoordinator.shared.heldKeys
+                        )
+                    }
+                    .frame(height: playHeight)
+                    .frame(maxHeight: .infinity, alignment: .top)
                 }
 
                 if let screenContext {
                     screenRegionChips(context: screenContext)
                 }
 
-                if controlsVisible {
+                if controlsVisible && !drawerPresented {
                     PlayerToolbar(
                         isPortrait: isPortrait,
                         safeArea: safeArea,
@@ -244,6 +270,12 @@ struct PlayerView: View {
                         .foregroundStyle(.secondary)
                     }
                 }
+                if let companion {
+                    companionPanel(companion)
+                }
+            }
+            .onChange(of: companion?.portraitViewport, initial: true) { _, region in
+                layout.screenRegion.setCompanionRegion(region)
             }
             .onChange(of: isPortrait, initial: true) { _, nowPortrait in
                 layout.setOrientation(nowPortrait ? .portrait : .landscape)
@@ -289,15 +321,7 @@ struct PlayerView: View {
             // action as soon as start() attaches handlers.
             actions.pauseMenu = { appState.togglePauseMenu() }
             actions.openMenu = openMore
-            actions.togglePokeDaisy = {
-                if showPokeDaisy {
-                    showPokeDaisy = false
-                } else if !hasModalOverlay && engineState.pauseHolds.isRunning {
-                    nativeSheetIsPresenting = true
-                    showPokeDaisy = true
-                    syncModalPause()
-                }
-            }
+            actions.togglePokeDaisy = toggleCompanion
             actions.toggleTouchControls = { toggleHideControls() }
             actions.log = { line in
                 layout.currentContainer?.appendLogLine(line, fileName: UserControlsFile.logFileName)
@@ -348,6 +372,7 @@ struct PlayerView: View {
                 layout.endEditSession()
             }
             toolbarIdleTask?.cancel()
+            layout.screenRegion.setCompanionRegion(nil)
             appState.setPauseHold(.overlay, active: false)
             ChromeHitRegions.removeAll()
             input.stop()
@@ -380,18 +405,12 @@ struct PlayerView: View {
                 showControllerRemap: input.hasSeenPhysicalInput,
                 onControllerRemap: { sheetAction = .controllerRemap },
                 onLayoutProfile: { sheetAction = .layoutProfile },
+                onToggleCompanion: { sheetAction = .companion },
                 onPause: { sheetAction = .pause },
                 onQuit: appState.canQuitGame ? { sheetAction = .quit } : nil,
                 onCheats: actions.isAvailable(EmpoActionCatalog.toggleCheats)
                     ? { sheetAction = .cheats } : nil
             )
-        }
-        .sheet(isPresented: $showPokeDaisy, onDismiss: finishNativeSheet) {
-            VStack(spacing: Spacing.lg) {
-                Text("PokeDaisy").font(.headline)
-                Button("Return to game") { showPokeDaisy = false }
-            }
-            .presentationDetents([.height(160)])
         }
         .onChange(of: hasModalOverlay) { _, _ in syncModalPause() }
         .onChange(of: dismissAction) { _, _ in syncInputPause() }
@@ -426,6 +445,47 @@ struct PlayerView: View {
             actions: actions,
             dialog: $editDialog
         )
+    }
+
+    @ViewBuilder private func companionPanel(_ companion: PokeDaisyLayout) -> some View {
+        let portrait = companion.canvas.isPortrait
+        let safe = companion.canvas.safeArea
+        let panel = companion.panel
+        if !portrait {
+            // Only the exposed part of the parked game dismisses the drawer.
+            Color.black.opacity(0.18)
+                .frame(width: panel.minX, height: panel.height)
+                .contentShape(Rectangle())
+                .chromeHitRegion()
+                .onTapGesture { toggleCompanion() }
+                .accessibilityHidden(true)
+                .position(x: panel.minX / 2, y: panel.midY)
+                .transition(.opacity)
+        }
+        PokeDaisyDashboard(onClose: toggleCompanion)
+            .padding(.leading, portrait ? safe.leading : 0)
+            .padding(.trailing, safe.trailing)
+            .padding(.top, portrait ? 0 : safe.top)
+            .padding(.bottom, safe.bottom)
+            .frame(width: panel.width, height: panel.height)
+            .background {
+                if portrait || reduceTransparency {
+                    Color.black
+                } else {
+                    Rectangle().fill(.thinMaterial)
+                        .overlay(Color.black.opacity(0.62))
+                }
+            }
+            .overlay(alignment: portrait ? .top : .leading) {
+                Rectangle().fill(.white.opacity(0.18))
+                    .frame(width: portrait ? nil : 1, height: portrait ? 1 : nil)
+                    .allowsHitTesting(false)
+            }
+            .environment(\.colorScheme, .dark)
+            .contentShape(Rectangle())
+            .chromeHitRegion()
+            .position(x: panel.midX, y: panel.midY)
+            .transition(reduceMotion ? .opacity : .move(edge: portrait ? .bottom : .trailing))
     }
 
     private struct ScreenGizmoContext {
@@ -631,7 +691,7 @@ struct PlayerView: View {
     }
 
     private enum SheetAction {
-        case pause, quit, controllerRemap, layoutProfile, cheats
+        case pause, quit, controllerRemap, layoutProfile, cheats, companion
     }
 
     private func applyBindings() {
@@ -646,6 +706,14 @@ struct PlayerView: View {
         guard !hasModalOverlay, appState.phase == .playing, engineState.pauseHolds.isRunning else { return }
         nativeSheetIsPresenting = true
         showMoreSheet = true
+        syncModalPause()
+    }
+
+    private func toggleCompanion() {
+        guard !blockingPlayerUI, appState.phase == .playing,
+            engineState.pauseHolds.isRunning || dismissAction != nil
+        else { return }
+        withAnimation(reduceMotion ? nil : Motion.standard) { showPokeDaisy.toggle() }
         syncModalPause()
     }
 
@@ -676,6 +744,8 @@ struct PlayerView: View {
         case .controllerRemap: showControllerRemap = true
         case .layoutProfile: showLayoutProfilePicker = true
         case .cheats: pendingCheats = true
+        case .companion:
+            withAnimation(reduceMotion ? nil : Motion.standard) { showPokeDaisy.toggle() }
         case nil: break
         }
         finishNativeSheet()
@@ -683,7 +753,7 @@ struct PlayerView: View {
 
     private func finishNativeSheet() {
         nativeSheetIsPresenting =
-            showMoreSheet || showControllerRemap || showLayoutProfilePicker || showPokeDaisy
+            showMoreSheet || showControllerRemap || showLayoutProfilePicker
         syncModalPause()
         openPendingCheats()
     }
@@ -698,6 +768,9 @@ struct PlayerView: View {
             toggleKeyboard()
         }
         if entering {
+            // Edit the real profile against its normal viewport.
+            showPokeDaisy = false
+            layout.screenRegion.setCompanionRegion(nil)
             withAnimation(Motion.snappy) {
                 layout.beginEditSession()
             }

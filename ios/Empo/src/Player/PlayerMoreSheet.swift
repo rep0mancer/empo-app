@@ -14,6 +14,7 @@ struct PlayerMoreSheet: View {
     let showControllerRemap: Bool
     let onControllerRemap: () -> Void
     let onLayoutProfile: () -> Void
+    let onToggleCompanion: () -> Void
     let onPause: () -> Void
     /// Nil hides the Quit row, for a game that can't end without
     /// closing Empo.
@@ -44,6 +45,11 @@ struct PlayerMoreSheet: View {
             VStack(spacing: Spacing.lg) {
                 VStack(spacing: 0) {
                     InterleavedRows {
+                        SheetRow(icon: "leaf", label: "PokeDaisy") {
+                            onToggleCompanion()
+                            dismiss()
+                        }
+                        .accessibilityIdentifier("pokedaisy.menu")
                         if let onCheats {
                             SheetRow(icon: "wand.and.stars", label: "Show cheats") {
                                 onCheats()

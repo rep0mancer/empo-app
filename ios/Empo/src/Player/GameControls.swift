@@ -60,6 +60,17 @@ struct FunctionButton: View {
                         isActive ? Color.brand : .white.opacity(isPressed ? 1.0 : 0.9))
             }
         )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(action.localizedName)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier(
+            "pokedaisy.toggle", isEnabled: action.id == EmpoActionCatalog.togglePokeDaisy
+        )
+        .accessibilityAction {
+            guard !editing else { return }
+            onPress()
+            onRelease()
+        }
     }
 }
 
