@@ -36,6 +36,26 @@ final class EssentialsTelemetryStoreTests: XCTestCase {
         XCTAssertEqual(snap.battle?.opponents.first?.stages["CUSTOM_STAT"], 2)
     }
 
+    func testOptionalGameLocalizedMoveAndItemNames() throws {
+        let store = EssentialsTelemetryStore()
+        store.receive(Data(live.utf8))
+        let original = try XCTUnwrap(store.snapshot?.party.first)
+        XCTAssertNil(original.itemName)
+        XCTAssertNil(original.moves.first?.name)
+        let named =
+            live
+            .replacingOccurrences(
+                of: #""item":"ORANBERRY""#, with: #""item":"ORANBERRY","itemName":"Baie Oran""#
+            )
+            .replacingOccurrences(of: #""id":"TACKLE""#, with: #""id":"TACKLE","name":"Charge Éclair""#)
+        store.receive(Data(named.utf8))
+        let member = try XCTUnwrap(store.snapshot?.party.first)
+        XCTAssertEqual(member.itemName, "Baie Oran")
+        XCTAssertEqual(member.moves.first?.name, "Charge Éclair")
+        XCTAssertEqual(member.item, original.item)
+        XCTAssertEqual(member.moves.first?.id, original.moves.first?.id)
+    }
+
     func testDecodesOptionalDirectionalTypeChart() throws {
         let store = EssentialsTelemetryStore()
         store.receive(Data(live.utf8))

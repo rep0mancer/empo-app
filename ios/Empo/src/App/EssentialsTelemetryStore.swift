@@ -15,6 +15,7 @@ struct EssentialsSnapshot: Decodable, Equatable, Sendable {
         let id: String
         let pp: Int
         let maxPP: Int
+        private(set) var name: String?
     }
 
     struct PartyMember: Decodable, Equatable, Sendable {
@@ -27,6 +28,7 @@ struct EssentialsSnapshot: Decodable, Equatable, Sendable {
         let item: String?
         let types: [String]
         let moves: [Move]
+        private(set) var itemName: String?
     }
 
     struct EncounterSlot: Decodable, Equatable, Sendable {
