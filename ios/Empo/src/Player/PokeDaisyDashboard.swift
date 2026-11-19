@@ -237,7 +237,7 @@ private struct PartyTab: View {
                             Divider()
                             LabeledContent {
                                 if let item = member.item {
-                                    Text(verbatim: displayID(item))
+                                    Text(verbatim: member.itemName ?? displayID(item))
                                 } else {
                                     Text("None")
                                 }
@@ -248,7 +248,7 @@ private struct PartyTab: View {
                             if !member.moves.isEmpty {
                                 ForEach(Array(member.moves.enumerated()), id: \.offset) { _, move in
                                     HStack {
-                                        Text(verbatim: displayID(move.id))
+                                        Text(verbatim: move.name ?? displayID(move.id))
                                         Spacer(minLength: Spacing.sm)
                                         Text("\(move.pp)/\(move.maxPP) PP")
                                             .foregroundStyle(.secondary).monospacedDigit()
