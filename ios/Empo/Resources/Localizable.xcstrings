@@ -5163,6 +5163,36 @@
         }
       }
     },
+    "%lld%% HP" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld %% KP"
+          }
+        }
+      }
+    },
+    "%lld/%lld HP" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/%lld KP"
+          }
+        }
+      }
+    },
+    "%lld/%lld PP" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/%lld AP"
+          }
+        }
+      }
+    },
     "%lldpt" : {
       "comment" : "Size of an on-screen control, in points.",
       "localizations" : {
@@ -6495,6 +6525,26 @@
         }
       }
     },
+    "Battle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kampf"
+          }
+        }
+      }
+    },
+    "Caught" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gefangen"
+          }
+        }
+      }
+    },
     "Choose a patch file…" : {
       "localizations" : {
         "de" : {
@@ -6525,12 +6575,32 @@
         }
       }
     },
+    "Close PokeDaisy" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PokeDaisy schließen"
+          }
+        }
+      }
+    },
     "Close the running game and wait for other file operations to finish." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Beende das laufende Spiel und warte, bis andere Dateivorgänge abgeschlossen sind."
+          }
+        }
+      }
+    },
+    "Collapsed" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eingeklappt"
           }
         }
       }
@@ -28188,6 +28258,36 @@
         }
       }
     },
+    "Encounter chance" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Begegnungschance"
+          }
+        }
+      }
+    },
+    "Encounter data unavailable" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Begegnungsdaten verfügbar"
+          }
+        }
+      }
+    },
+    "Encounter method" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Begegnungsart"
+          }
+        }
+      }
+    },
     "Engine" : {
       "localizations" : {
         "de" : {
@@ -28649,6 +28749,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "所有备份位置都已暂停"
+          }
+        }
+      }
+    },
+    "Expanded" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgeklappt"
           }
         }
       }
@@ -31185,6 +31295,16 @@
         }
       }
     },
+    "Game data unavailable" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Spieldaten verfügbar"
+          }
+        }
+      }
+    },
     "Game default" : {
       "localizations" : {
         "de" : {
@@ -32462,6 +32582,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "网格"
+          }
+        }
+      }
+    },
+    "Held item" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Getragenes Item"
           }
         }
       }
@@ -35022,6 +35152,106 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "卡片内"
+          }
+        }
+      }
+    },
+    "Lv. %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lv. %@"
+          }
+        }
+      }
+    },
+    "Lv. %lld" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lv. %lld"
+          }
+        }
+      }
+    },
+    "Map %lld" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Karte %lld"
+          }
+        }
+      }
+    },
+    "No active battle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein laufender Kampf"
+          }
+        }
+      }
+    },
+    "No party members" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Team ist leer"
+          }
+        }
+      }
+    },
+    "No wild encounters here" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hier gibt es keine wilden Pokémon"
+          }
+        }
+      }
+    },
+    "Open a Pokémon Essentials save to see its game data." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lade einen Spielstand in Pokémon Essentials, um die Spieldaten zu sehen."
+          }
+        }
+      }
+    },
+    "Opponent" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gegner"
+          }
+        }
+      }
+    },
+    "Opponent attacking types" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gegnerische Angriffstypen"
+          }
+        }
+      }
+    },
+    "Party" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Team"
           }
         }
       }
@@ -44632,6 +44862,26 @@
         }
       }
     },
+    "PokeDaisy" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PokeDaisy"
+          }
+        }
+      }
+    },
+    "Pokédex unknown" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokédex-Status unbekannt"
+          }
+        }
+      }
+    },
     "Preparing preview…" : {
       "localizations" : {
         "de" : {
@@ -49676,6 +49926,16 @@
         }
       }
     },
+    "Route" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Route"
+          }
+        }
+      }
+    },
     "RPG Maker MV and MZ core" : {
       "localizations" : {
         "de" : {
@@ -53916,6 +54176,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在 GitHub 上查看全部更新 %@"
+          }
+        }
+      }
+    },
+    "Seen" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesehen"
           }
         }
       }
@@ -69720,6 +69990,26 @@
         }
       }
     },
+    "Type chart unavailable" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Typentabelle verfügbar"
+          }
+        }
+      }
+    },
+    "Type matchups" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Typeneffektivität"
+          }
+        }
+      }
+    },
     "Type the name of the bucket." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -69893,6 +70183,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请输入服务器的用户名。"
+          }
+        }
+      }
+    },
+    "Types, %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Typen, %@"
+          }
+        }
+      }
+    },
+    "Unavailable" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht verfügbar"
+          }
+        }
+      }
+    },
+    "Uncaught" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch nicht gefangen"
           }
         }
       }
@@ -70243,6 +70563,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未知按键"
+          }
+        }
+      }
+    },
+    "Unseen" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ungesehen"
           }
         }
       }
@@ -72749,6 +73079,16 @@
         }
       }
     },
+    "Your attacking types" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Angriffstypen"
+          }
+        }
+      }
+    },
     "Your backups are still there." : {
       "localizations" : {
         "de" : {
@@ -72861,6 +73201,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你的备份仍在原处。重新添加备份位置即可继续备份。"
+          }
+        }
+      }
+    },
+    "Your battler" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Pokémon"
           }
         }
       }

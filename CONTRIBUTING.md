@@ -20,15 +20,15 @@ Issues, ideas, and PRs are welcome.
 This personal branch builds MKXP from the engine commit in `cores/mkxp/.version`. The archive and its checksum receipt stay in the ignored `ios/Dependencies/` directory. Xcode fetches the pinned PSDK, MV/MZ and ANGLE dependencies.
 
 ```sh
-brew install bun xcodegen gh automake autoconf libtool cmake pkg-config bison
-git clone --branch personal/phase-2 https://github.com/rep0mancer/empo-app.git
+brew install xcodegen gh automake autoconf libtool cmake pkg-config bison
+git clone --branch personal/phase-3 https://github.com/rep0mancer/empo-app.git
 cd empo-app
-bun install
 cores/mkxp/rebuild-local.sh
 touch ios/Empo/Signing.xcconfig
 xcodegen generate --spec ios/Empo/project.yml --project ios/Empo
 xcodebuild -project ios/Empo/Empo.xcodeproj -scheme Empo \
-  -destination 'generic/platform=iOS Simulator' -configuration Debug build
+  -destination 'generic/platform=iOS Simulator' -configuration Debug \
+  -derivedDataPath build/ios CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= build
 ```
 
 Build the scheme, not the target. A `-target` build resolves SwiftPM
@@ -59,9 +59,10 @@ PSDK and MV/MZ continue to use the upstream release pins in their respective cor
 ### Simulator install
 
 ```sh
-SIM=$(xcrun simctl list devices booted | grep -oE '[0-9A-F-]{36}' | head -1)
-xcrun simctl install "$SIM" ios/Empo/build/Debug-iphonesimulator/Empo.app
-xcrun simctl launch "$SIM" sh.mateo.empo
+xcrun simctl list devices booted
+# Set SIM to the UUID of the simulator you want to use.
+xcrun simctl install "$SIM" build/ios/Build/Products/Debug-iphonesimulator/Empo.app
+xcrun simctl launch "$SIM" sh.mateo.empo.dev
 ```
 
 For device builds, swap `iphonesimulator` for `iphoneos` and create a gitignored `ios/Empo/Signing.xcconfig` with your `DEVELOPMENT_TEAM`.

@@ -16,6 +16,14 @@ Empo is a game launcher for iPhone, iPad, and Mac. It runs RPG Maker XP, VX, VX 
 
 The name's from _emporos_, ancient Greek for a traveler riding on someone else's ship.
 
+## Personal iPhone build
+
+This branch builds on Mateo M.’s Empo and Apple-mobile MKXP-Z engine. The Party, Route and Battle views take their UX inspiration from lidor30’s PokeDaisy. The iOS companion receives its data from the running game’s Ruby objects. [Upstream Empo](https://github.com/mateo-m/empo-app) · [Upstream engine](https://github.com/mateo-m/mkxp-z-apple-mobile) · [PokeDaisy](https://github.com/lidor30/pokedaisy)
+
+Tap the PokeDaisy control during a game, or choose **More → PokeDaisy**. In portrait, the game stays playable above the dashboard. In landscape, the drawer pauses play until you dismiss it. The Battle tab compares the active battlers’ types using the fangame’s type chart. Route percentages are relative to the selected encounter method.
+
+RPG Maker XP games also have **Patches & Updates** and save transfer in Game Info. The personal engine is built locally. [Source build instructions](CONTRIBUTING.md#build)
+
 ## Demo
 
 Import a game and play it:
@@ -57,7 +65,7 @@ Pre-release. Not on the App Store.
 
 The app works end to end with RGSS1/2/3 games, modern mkxp-z forks, and PSDK games. Per-game compatibility reports are welcome (open an issue).
 
-Each release on the [Releases page](https://github.com/mateo-m/empo-app/releases) has an unsigned `.ipa` file for iPhone and iPad. Install it with [AltStore](https://altstore.io), [SideStore](https://sidestore.io) or [Sideloadly](https://sideloadly.io). [Install Empo](https://empo.mateo.sh/install#iphone-and-ipad) shows how.
+Each upstream release on the [Empo releases page](https://github.com/mateo-m/empo-app/releases) has an unsigned `.ipa` file for iPhone and iPad. Install it with [AltStore](https://altstore.io), [SideStore](https://sidestore.io) or [Sideloadly](https://sideloadly.io). [Install Empo](https://empo.mateo.sh/install#iphone-and-ipad) shows how.
 
 The release also has a disk image for a Mac with Apple silicon and macOS 26 or newer. Apple has not notarized it, so macOS blocks it the first time you open it. [Install Empo](https://empo.mateo.sh/install#mac) shows how to allow it.
 
