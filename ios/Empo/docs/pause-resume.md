@@ -1,16 +1,13 @@
 ---
 title: Pause and resume
-description: The two pause modes, and the frozen-frame snapshots that bridge the game window into SwiftUI transitions.
+description: Native menus, background and library pauses, and the frame used for the library transition.
 ---
 
 ## Overview
 
-The app has two pause modes:
+More, the controls editor, the PokeDaisy sheet, system dialogs, the library and background activity can each hold a pause. The game resumes when the last hold ends. Returning to the library also puts the last frame on the game card for the resume animation.
 
-1. **Manual pause.** The user taps the pause button in the toolbar. The engine stops, the UI goes back to the library, and the game card shows a pause indicator. A tap on the card resumes the game with a hero zoom animation.
-2. **Background pause.** The app moves to the background. The engine stops with no UI change, and the player view stays mounted. The game resumes when the app comes back to the foreground.
-
-Both modes use the same engine pause. They differ in how the UI responds. The Ruby cores block the game thread on a condition variable. The MV/MZ core stops the game in its web page.
+The host waits for the first rendered frame before sending a queued pause. It waits for the core to acknowledge each pause and resume before issuing the next command. While the engine is parked or a command is pending, gameplay input and the play-time clock are suspended.
 
 The app calls the `gamecore_*` functions. `AppCoreForwarders.c` sends each call to the core of the game, so the app uses the same flow for every core.
 
@@ -47,7 +44,7 @@ So the engine **never touches the OpenAL context**. No `alcMakeContextCurrent(NU
 2. The core calls the frame callback one line before it swaps the buffers. When the flag is set, `captureSnapshot()` reads the game picture from the default framebuffer.
 3. `psdk_pause_audio` stops all game sound. SFMLAudio keeps no list of its sources, so the core pauses the whole OpenAL Soft device.
 4. It calls the paused callback and waits on the condition variable.
-5. `psdk_requestResume()` clears the flag, signals the condition variable, and clears the snapshot. `psdk_resume_audio` starts the sound again.
+5. `psdk_requestResume()` clears the flag, signals the condition variable, and clears the snapshot. The game thread leaves its wait, calls `psdk_resume_audio`, and acknowledges the resume.
 
 ## Pause in the RPG Maker MV and MZ core
 
@@ -86,7 +83,7 @@ Each core copies the RGBA data into a `std::vector<unsigned char>`. A mutex guar
 
 **Retrieval (Swift, `EngineSessionCoordinator.swift`):**
 
-The paused callback runs on the engine thread. `capturePauseSnapshot()` reads the snapshot and converts the bytes to a `CGImage`, then to a `UIImage`. The callback then goes to the main thread. `AppState.handlePause(snapshot:)` stores the image as `pauseManager.pauseSnapshot`. It ignores a background pause.
+The paused callback schedules a session-scoped acknowledgement on the main actor. A library pause reads the parked frame with `capturePauseSnapshot()` and stores the image in `PauseManager.pauseSnapshot`. A menu can already hold the engine at that same frame when the player chooses the library.
 
 **Display (Swift, `PauseSnapshotOverlay.swift`):**
 
@@ -111,7 +108,7 @@ The resume transition has two stages. Both show the same snapshot, so the pictur
 The hero zoom from the game card to `GameLoadingView` needs a visible library. So `resumePausedGame()` does not change the phase at once:
 
 1. `handleGameTap` calls `appState.resumePausedGame()`, then pushes the game.
-2. `resumePausedGame()` clears `pausedGame`, sets `snapshotCanFade` to false, and calls `gamecore_requestResume()`. The engine unblocks. The phase does not change yet.
+2. `resumePausedGame()` clears `pausedGame`, sets `snapshotCanFade` to false, and releases the library hold. When all holds have ended, the host calls `gamecore_requestResume()`. The phase does not change yet.
 3. The push shows `GameLoadingView` with the hero zoom. The destination shows the snapshot at `engineState.gameRect` on a black background.
 
 ### Stage 2: handoff to `PlayerView`
@@ -134,9 +131,9 @@ The hero zoom from the game card to `GameLoadingView` needs a visible library. S
 | `mvmz-apple-mobile/src/runtime.js`             | Keeps the frames and pauses the audio in the page                             |
 | `ios/Empo/src/App/AppCoreForwarders.c`         | Sends each `gamecore_*` call to the core of the game                          |
 | `ios/Empo/src/App/PauseManager.swift`          | `pausedGame`, `pauseSnapshot`, `snapshotCanFade`                              |
-| `ios/Empo/src/App/AppState.swift`              | `requestPause()`, `handlePause(snapshot:)`, `resumePausedGame()`             |
+| `ios/Empo/src/App/AppState.swift`              | `requestPause()`, `handlePause()`, `resumePausedGame()`             |
 | `ios/Empo/src/App/EngineSessionCoordinator.swift` | Paused callback, `capturePauseSnapshot()`, frame-rendered callback         |
-| `ios/Empo/src/App/EngineState.swift`           | Background pause and resume (`requestBackgroundPause()`, `resumeFromBackground()`) |
+| `ios/Empo/src/App/EngineState.swift`           | Holds for the current game session |
 | `ios/Empo/src/Design/PauseSnapshotOverlay.swift` | Shows the snapshot at `engineState.gameRect`                                |
 | `ios/Empo/src/Library/GameLoadingView.swift`   | Snapshot during the hero zoom (stage 1)                                       |
 | `ios/Empo/src/Library/GameLibraryView.swift`   | `handleGameTap()`: the start of the resume flow                               |

@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Mateo M. Additional terms apply: see ADDITIONAL-TERMS.md.
 
 import Foundation
+import GameProbe
 import Observation
 import UIKit
 
@@ -11,33 +12,7 @@ class EngineState {
 
     var gameRect: CGRect = .zero
 
-    enum PauseRequest {
-        case user
-        case background
-    }
-
-    /// Who asked for the pause that the core has not yet reported, or
-    /// that still holds the game. The core's paused callback has no
-    /// request id, so this is the only way to tell whose pause it is.
-    /// A background pause stays here until the app returns, so the
-    /// return can undo exactly that pause.
-    var pauseRequest: PauseRequest?
+    var pauseHolds = SessionPauseHolds()
 
     private init() {}
-
-    /// The caller must guard `phase == .playing` before the call.
-    /// A pause that the user asked for stays the user's pause.
-    func requestBackgroundPause() {
-        guard pauseRequest == nil else { return }
-        pauseRequest = .background
-        gamecore_requestPause()
-    }
-
-    /// Resume also cancels a background pause that the core has not
-    /// reached yet.
-    func resumeFromBackground() {
-        guard pauseRequest == .background else { return }
-        pauseRequest = nil
-        gamecore_requestResume()
-    }
 }

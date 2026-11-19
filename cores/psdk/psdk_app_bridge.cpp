@@ -516,6 +516,10 @@ void onFrame(void *) {
     gResumeSignal.wait(lock, [] { return !gPausedFlag.load(); });
 #endif
     psdk_resume_audio();
+    // The thread has left its wait. The host can now send the next pause.
+    if (gResumed.fn) {
+        reinterpret_cast<gamecore_ResumedCallback>(gResumed.fn)(gResumed.userdata);
+    }
 }
 
 }  // namespace
@@ -696,9 +700,6 @@ void gamecore_requestResume(void) {
         gSnapshotRGBA.clear();
         gSnapshotW = 0;
         gSnapshotH = 0;
-    }
-    if (gResumed.fn) {
-        reinterpret_cast<gamecore_ResumedCallback>(gResumed.fn)(gResumed.userdata);
     }
 }
 

@@ -29,10 +29,25 @@ struct PlayerView: View {
     @State private var editDialog: ControlsEditDialog?
 
     @State private var showMoreSheet = false
+    @State private var nativeSheetIsPresenting = false
+    @State private var showPokeDaisy = false
+    @State private var pendingCheats = false
     @State private var sheetAction: SheetAction?
     @State private var showControllerRemap = false
     @State private var showLayoutProfilePicker = false
     @State private var showLayoutSaveFailure = false
+
+    private var hasModalOverlay: Bool {
+        nativeSheetIsPresenting || showControllerRemap || showLayoutProfilePicker || showPokeDaisy
+            || editMode || editDialog != nil || showLayoutSaveFailure
+    }
+
+    private var dismissAction: String? {
+        guard showPokeDaisy, !engineState.pauseHolds.contains(.background),
+            !engineState.pauseHolds.contains(.library), !engineState.pauseHolds.contains(.systemSheet)
+        else { return nil }
+        return EmpoActionCatalog.togglePokeDaisy
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -103,7 +118,9 @@ struct PlayerView: View {
                         }
                 }
 
-                if !controlsHidden && (controlsVisible || resumeSnapshot == nil) {
+                if !controlsHidden && (editMode || engineState.pauseHolds.isRunning)
+                    && (controlsVisible || resumeSnapshot == nil)
+                {
                     PlayerControlsOverlay(
                         layout: layout,
                         actions: actions,
@@ -131,7 +148,7 @@ struct PlayerView: View {
                         onToggleKeyboard: { toggleKeyboard() },
                         onToggleEditMode: { toggleEditMode() },
                         onToggleHideControls: { toggleHideControls() },
-                        onShowMore: { showMoreSheet = true },
+                        onShowMore: openMore,
                         onResetIdleTimer: { resetToolbarIdleTimer() }
                     )
                     .opacity(editMode ? 0 : 1)
@@ -184,7 +201,7 @@ struct PlayerView: View {
                 // flashes its own UI (a Memoji education splash) on
                 // the way down. A mounted field resigns cleanly.
                 KeyboardFieldRepresentable(
-                    isActive: keyboardMode,
+                    isActive: keyboardMode && engineState.pauseHolds.isRunning,
                     excludedScancodes: { accessoryExcludedScancodes }
                 )
                 .frame(width: 0, height: 0)
@@ -271,6 +288,16 @@ struct PlayerView: View {
             // starts: the first controller edge can dispatch an
             // action as soon as start() attaches handlers.
             actions.pauseMenu = { appState.togglePauseMenu() }
+            actions.openMenu = openMore
+            actions.togglePokeDaisy = {
+                if showPokeDaisy {
+                    showPokeDaisy = false
+                } else if !hasModalOverlay && engineState.pauseHolds.isRunning {
+                    nativeSheetIsPresenting = true
+                    showPokeDaisy = true
+                    syncModalPause()
+                }
+            }
             actions.toggleTouchControls = { toggleHideControls() }
             actions.log = { line in
                 layout.currentContainer?.appendLogLine(line, fileName: UserControlsFile.logFileName)
@@ -290,6 +317,7 @@ struct PlayerView: View {
             // library -> resume (engine state is process-static).
             actions.runtime.bind(container: layout.currentContainer)
             applyBindings()
+            syncModalPause()
             input.start(overlayHidden: $controlsHidden, editMode: { layout.editSessionActive })
 
             // Pick up the pause snapshot and hold it until the engine
@@ -311,6 +339,7 @@ struct PlayerView: View {
             }
         }
         .onDisappear {
+            pendingCheats = false
             // A pause from edit mode removes this view. The next
             // player view starts outside edit mode, so the session
             // ends here, the same as Done.
@@ -318,6 +347,8 @@ struct PlayerView: View {
                 try? layout.save()
                 layout.endEditSession()
             }
+            toolbarIdleTask?.cancel()
+            appState.setPauseHold(.overlay, active: false)
             ChromeHitRegions.removeAll()
             input.stop()
             EngineSessionCoordinator.shared.clearTextInputModeHandler()
@@ -352,16 +383,29 @@ struct PlayerView: View {
                 onPause: { sheetAction = .pause },
                 onQuit: appState.canQuitGame ? { sheetAction = .quit } : nil,
                 onCheats: actions.isAvailable(EmpoActionCatalog.toggleCheats)
-                    ? { actions.handle(EmpoActionCatalog.toggleCheats, pressed: true) } : nil
+                    ? { sheetAction = .cheats } : nil
             )
         }
+        .sheet(isPresented: $showPokeDaisy, onDismiss: finishNativeSheet) {
+            VStack(spacing: Spacing.lg) {
+                Text("PokeDaisy").font(.headline)
+                Button("Return to game") { showPokeDaisy = false }
+            }
+            .presentationDetents([.height(160)])
+        }
+        .onChange(of: hasModalOverlay) { _, _ in syncModalPause() }
+        .onChange(of: dismissAction) { _, _ in syncInputPause() }
+        .onChange(of: engineState.pauseHolds.isRunning) { _, _ in
+            syncInputPause()
+            openPendingCheats()
+        }
         .layoutSaveFailureAlert(isPresented: $showLayoutSaveFailure)
-        .sheet(isPresented: $showLayoutProfilePicker) {
+        .sheet(isPresented: $showLayoutProfilePicker, onDismiss: finishNativeSheet) {
             if let container = layout.currentContainer {
                 LayoutProfilePickerSheet(container: container)
             }
         }
-        .sheet(isPresented: $showControllerRemap) {
+        .sheet(isPresented: $showControllerRemap, onDismiss: finishNativeSheet) {
             BindingsView(
                 container: layout.currentContainer,
                 gameTitle: appState.selectedGame?.title,
@@ -587,7 +631,7 @@ struct PlayerView: View {
     }
 
     private enum SheetAction {
-        case pause, quit, controllerRemap, layoutProfile
+        case pause, quit, controllerRemap, layoutProfile, cheats
     }
 
     private func applyBindings() {
@@ -598,6 +642,31 @@ struct PlayerView: View {
     /// the More sheet is still on screen, SwiftUI can keep the view
     /// after the game ended. SwiftUI shows one sheet at a time, so the
     /// next sheet also waits until the More sheet is gone.
+    private func openMore() {
+        guard !hasModalOverlay, appState.phase == .playing, engineState.pauseHolds.isRunning else { return }
+        nativeSheetIsPresenting = true
+        showMoreSheet = true
+        syncModalPause()
+    }
+
+    private func syncModalPause() {
+        appState.setPauseHold(.overlay, active: hasModalOverlay)
+        syncInputPause()
+    }
+
+    private func syncInputPause() {
+        let paused = !engineState.pauseHolds.isRunning
+        input.setPaused(paused, dismissAction: dismissAction)
+        if paused { EngineSessionCoordinator.shared.releaseKeys(from: .touch) }
+    }
+
+    private func openPendingCheats() {
+        guard pendingCheats, appState.phase == .playing, !hasModalOverlay, engineState.pauseHolds.isRunning
+        else { return }
+        pendingCheats = false
+        actions.handle(EmpoActionCatalog.toggleCheats, pressed: true)
+    }
+
     private func runSheetAction() {
         let action = sheetAction
         sheetAction = nil
@@ -606,8 +675,17 @@ struct PlayerView: View {
         case .quit: appState.quitGame()
         case .controllerRemap: showControllerRemap = true
         case .layoutProfile: showLayoutProfilePicker = true
+        case .cheats: pendingCheats = true
         case nil: break
         }
+        finishNativeSheet()
+    }
+
+    private func finishNativeSheet() {
+        nativeSheetIsPresenting =
+            showMoreSheet || showControllerRemap || showLayoutProfilePicker || showPokeDaisy
+        syncModalPause()
+        openPendingCheats()
     }
 
     private func toggleEditMode() {
@@ -637,6 +715,7 @@ struct PlayerView: View {
             }
             resetToolbarIdleTimer()
         }
+        syncModalPause()
     }
 
     private func toggleHideControls() {
@@ -650,8 +729,8 @@ struct PlayerView: View {
     private var accessoryExcludedScancodes: Set<Int32> {
         var covered = Set<Int32>()
         if !controlsHidden {
-            covered.formUnion(ControlDirection.allCases.map(\.scancode))
-            for button in layout.buttons {
+            if layout.dpadVisible { covered.formUnion(ControlDirection.allCases.map(\.scancode)) }
+            for button in layout.buttons where button.visible {
                 covered.insert(button.scancode)
             }
         }

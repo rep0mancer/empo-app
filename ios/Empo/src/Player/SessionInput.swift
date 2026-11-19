@@ -47,10 +47,27 @@ final class SessionInput {
         set { keyboard.textInputActive = newValue }
     }
 
+    private var paused = false
+    private var dismissAction: String?
+
+    func setPaused(_ paused: Bool, dismissAction: String? = nil) {
+        self.paused = paused
+        self.dismissAction = dismissAction
+        updateSuppression()
+    }
+
+    private func updateSuppression() {
+        let suppressed = paused || remapListener != nil
+        let allowed = paused && remapListener == nil ? dismissAction : nil
+        controller.allowedWhileSuppressed = allowed
+        keyboard.allowedWhileSuppressed = allowed
+        controller.suppressInjection = suppressed
+        keyboard.suppressInjection = suppressed
+    }
+
     var remapListener: RemapListener? {
         didSet {
-            controller.suppressInjection = remapListener != nil
-            keyboard.suppressInjection = remapListener != nil
+            updateSuppression()
             controller.elementActivityHandler = remapListener?.elementPressed
             controller.connectionHandler = remapListener?.controllersChanged
             keyboard.keyActivityHandler = remapListener?.keyPressed

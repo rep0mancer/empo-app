@@ -127,8 +127,6 @@ final class KeyboardInputManager: InputManager<Int32> {
             overlay?.update { $0.noteKeyPress() }
         }
 
-        guard !suppressInjection else { return }
-
         if pressed {
             let target: ResolvedTarget = textInputActive ? .key(source) : resolvedMap[source] ?? .key(source)
             press(source, as: target)

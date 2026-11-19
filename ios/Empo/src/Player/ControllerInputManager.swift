@@ -196,7 +196,6 @@ final class ControllerInputManager: InputManager<String> {
             if edge.pressed {
                 elementActivityHandler?(edge.element)
             }
-            if suppressInjection { continue }
             if edge.pressed {
                 if let target = resolvedMap[edge.element] {
                     press(edge.element, as: target)

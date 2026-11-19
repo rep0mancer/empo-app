@@ -18,6 +18,7 @@ class InputManager<Element: Hashable> {
     /// While true, presses do not reach the game. Suppression swallows
     /// the release edges of the keys held when it begins. Release those
     /// keys now, or they stay stuck in the engine.
+    var allowedWhileSuppressed: String?
     var suppressInjection = false {
         didSet {
             if suppressInjection, !oldValue {
@@ -58,6 +59,11 @@ class InputManager<Element: Hashable> {
     }
 
     func press(_ element: Element, as target: ResolvedTarget) {
+        if suppressInjection {
+            guard case .action(let id) = target, id == allowedWhileSuppressed else { return }
+            _ = actionHandler?(id, true)
+            return
+        }
         switch target {
         case .key(let scancode):
             pressedScancodes[element] = scancode

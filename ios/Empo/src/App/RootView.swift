@@ -208,10 +208,14 @@ struct RootView: View {
         } message: {
             Text(appState.infoMessage ?? "")
         }
+        .onChange(of: sharedReport != nil || appState.shownError != nil || appState.infoMessage != nil) {
+            _, open in
+            appState.setPauseHold(.systemSheet, active: open)
+        }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) {
             _ in
+            appState.setPauseHold(.background, active: true)
             if appState.phase == .playing {
-                engineState.requestBackgroundPause()
                 // If the engine rendered at least one frame, this was a
                 // healthy session. Remove the crash marker, so a
                 // force-kill from the app switcher does not trigger a
@@ -228,16 +232,15 @@ struct RootView: View {
             // paused to the library).
             appState.flushSessionPlayTimeForBackground()
         }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) {
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) {
             _ in
             Task { await EmpoPlus.shared.refresh() }
+            appState.setPauseHold(.background, active: false)
             if appState.phase == .playing {
-                engineState.resumeFromBackground()
                 // Re-create the crash marker, so the next launch still
                 // detects a crash after resume.
                 appState.restoreCrashMarker()
             }
-            appState.resumeSessionTimingAfterBackground()
         }
         .onChange(of: appState.shownError) { _, error in
             if error != nil {

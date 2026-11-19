@@ -26,6 +26,26 @@ final class ControllerInputManagerTests: XCTestCase {
     private var logLines: [String] = []
     private var pads: [GCController] = []
 
+    func testPausedInputReleasesHoldsAndOnlyDeliversThePresentedDismissAction() {
+        var keys: [Bool] = []
+        let manager = ControllerInputManager(keys: HeldKeys { _, down in keys.append(down) })
+        var actions: [String] = []
+        manager.actionHandler = { name, down in
+            actions.append("\(name)-\(down)")
+            return true
+        }
+        manager.press("a", as: .key(41))
+        manager.press("x", as: .action(EmpoActionCatalog.fastForwardHold))
+        manager.allowedWhileSuppressed = EmpoActionCatalog.togglePokeDaisy
+        manager.suppressInjection = true
+        manager.press("b", as: .key(42))
+        manager.press("x", as: .action(EmpoActionCatalog.fastForwardHold))
+        manager.press("y", as: .action(EmpoActionCatalog.togglePokeDaisy))
+        manager.release("y")
+        XCTAssertEqual(keys, [true, false])
+        XCTAssertEqual(actions, ["$fastForward-true", "$fastForward-false", "$togglePokeDaisy-true"])
+    }
+
     override func setUp() async throws {
         actions = []
         pressedElements = []

@@ -22,7 +22,8 @@ protocol EngineSessionCoordinatorDelegate: AnyObject {
     func coordinatorDidReportEngineInfo(_ message: String)
     func coordinatorSaveLoaded()
     func coordinatorDidRepairSave(_ detail: String)
-    func coordinatorEngineDidPause(snapshot: UIImage?)
+    func coordinatorEngineDidResume()
+    func coordinatorEngineDidPause()
     func coordinatorPausedGameStopped()
 }
 
@@ -34,6 +35,7 @@ final class EngineSessionCoordinator {
 
     private let crashTracker = CrashTracker()
     private let sessionLogger = SessionLogger()
+    private var lifecycleGeneration = 0
     private var textInputModeHandler: ((Bool) -> Void)?
     /// The core `openCore` opened, or nil before it runs. The player
     /// UI reads this to hide a row the running core does not answer.
@@ -133,6 +135,7 @@ final class EngineSessionCoordinator {
     /// Kills a paused or ended game, so that the next one can start.
     /// The pause or the end already recorded its play time.
     func killSession(of game: GameEntry?) {
+        lifecycleGeneration += 1
         if let container = game?.container {
             crashTracker.removeMarker(for: container)
         }
@@ -159,6 +162,7 @@ final class EngineSessionCoordinator {
 
     func configureEngine(_ input: GameSession.LaunchInput) {
         openCore(input.core)
+        registerSessionLifecycleCallbacks()
         GameSession.configureEngine(
             input,
             crashTracker: crashTracker,
@@ -175,12 +179,16 @@ final class EngineSessionCoordinator {
         case .gameProcess:
             GameCoreLaunch.run(gamePath: path)
         case .app:
+            let generation = lifecycleGeneration
             Task {
                 // A game process ends a moment after `end`, and the
                 // next game must not run beside it.
                 await GameProcessHost.waitForExit()
                 RunLoop.main.perform {
-                    GameCoreLaunch.run(gamePath: path)
+                    MainActor.assumeIsolated {
+                        guard self.lifecycleGeneration == generation else { return }
+                        GameCoreLaunch.run(gamePath: path)
+                    }
                 }
             }
         }
@@ -251,20 +259,6 @@ final class EngineSessionCoordinator {
                 }
             }, nil)
 
-        gamecore_setFrameRenderedCallback(
-            { _ in
-                Task { @MainActor in
-                    EngineSessionCoordinator.shared.delegate?.coordinatorFrameRendered()
-                }
-            }, nil)
-
-        gamecore_setEngineTerminatedCallback(
-            { _ in
-                Task { @MainActor in
-                    EngineSessionCoordinator.shared.handleEngineTerminated()
-                }
-            }, nil)
-
         gamecore_setGameRectChangedCallback(
             { x, y, w, h, _ in
                 let newRect = CGRect(
@@ -309,20 +303,53 @@ final class EngineSessionCoordinator {
                     }
                 }
             }, nil)
+    }
 
-        gamecore_setPausedCallback(
-            { _ in
-                let snapshot = EngineSessionCoordinator.capturePauseSnapshot()
+    /// A callback can be queued on the main actor when a session ends. Give
+    /// each launch its own generation, including launches that reuse the core.
+    private func registerSessionLifecycleCallbacks() {
+        lifecycleGeneration += 1
+        let token = UnsafeMutableRawPointer(bitPattern: lifecycleGeneration)
+        gamecore_setEngineTerminatedCallback(
+            { context in
+                let generation = Int(bitPattern: context)
                 Task { @MainActor in
-                    EngineSessionCoordinator.shared.delegate?
-                        .coordinatorEngineDidPause(snapshot: snapshot)
+                    let coordinator = EngineSessionCoordinator.shared
+                    guard coordinator.lifecycleGeneration == generation else { return }
+                    coordinator.handleEngineTerminated()
                 }
-            }, nil)
-
-        gamecore_setResumedCallback({ _ in }, nil)
+            }, token)
+        gamecore_setFrameRenderedCallback(
+            { context in
+                let generation = Int(bitPattern: context)
+                Task { @MainActor in
+                    let coordinator = EngineSessionCoordinator.shared
+                    guard coordinator.lifecycleGeneration == generation else { return }
+                    coordinator.delegate?.coordinatorFrameRendered()
+                }
+            }, token)
+        gamecore_setPausedCallback(
+            { context in
+                let generation = Int(bitPattern: context)
+                Task { @MainActor in
+                    let coordinator = EngineSessionCoordinator.shared
+                    guard coordinator.lifecycleGeneration == generation else { return }
+                    coordinator.delegate?.coordinatorEngineDidPause()
+                }
+            }, token)
+        gamecore_setResumedCallback(
+            { context in
+                let generation = Int(bitPattern: context)
+                Task { @MainActor in
+                    let coordinator = EngineSessionCoordinator.shared
+                    guard coordinator.lifecycleGeneration == generation else { return }
+                    coordinator.delegate?.coordinatorEngineDidResume()
+                }
+            }, token)
     }
 
     private func handleEngineTerminated() {
+        lifecycleGeneration += 1
         recordSessionPlayTime()
         GameSaveWatch.shared.endSession()
         if let container = delegate?.coordinatorSelectedGame?.container {
@@ -344,7 +371,9 @@ final class EngineSessionCoordinator {
         }
     }
 
-    private static func capturePauseSnapshot() -> UIImage? {
+    /// The core retains the acknowledged frame until resume. Native controls need
+    /// no image copy. Returning to the library is the point that consumes it.
+    func capturePauseSnapshot() -> UIImage? {
         var w: Int32 = 0
         var h: Int32 = 0
         guard gamecore_getSnapshotSize(&w, &h), w > 0, h > 0 else { return nil }

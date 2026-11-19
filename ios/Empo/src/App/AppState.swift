@@ -37,6 +37,7 @@ class AppState {
     var infoMessage: String?
     @ObservationIgnored private var saveLoad: SaveLoad?
     var engineReady = false
+    private var isInBackground = false
     /// The latest release-check result for sideload/dev builds.
     /// `RootView` fills it at launch. Settings and the library banner
     /// read it.
@@ -149,9 +150,13 @@ class AppState {
             )
         )
 
+        setPauseHold(
+            .background, active: isInBackground || UIApplication.shared.applicationState == .background)
+
         // The hop to the next main-actor turn lets SwiftUI commit
         // `phase = .loading` before the engine takes the path.
         Task { @MainActor in
+            guard selectedGame?.id == game.id, phase == .loading else { return }
             session.launchGamePath(game.path)
         }
     }
@@ -235,6 +240,7 @@ class AppState {
         guard canQuitGame else { return }
         quitOnPause = true
         requestPause()
+        guard quitOnPause else { return }  // A parked menu can finish the quit synchronously.
         // A Ruby game pauses only between two frames, so a game that
         // runs a long script does not pause. Ending it then could cut a
         // save that it is writing, so the quit stops, and a later pause
@@ -273,24 +279,49 @@ class AppState {
         // Pause graduated from experimental in May 2026. It is
         // always enabled. The only gate is "a game is playing."
         guard phase == .playing else { return }
-        // Pause is the only return-to-library path. Flush play time
-        // here so last-played and totals update even though the
-        // engine keeps running.
-        session.recordSessionPlayTime()
         // The runtime watch of SPEC 3.6 reads here too. The pause is
         // the only way back to the library, so it is the last point
         // the app controls before the user may close it.
         GameSaveWatch.shared.takeReading()
-        EngineState.shared.pauseRequest = .user
-        session.requestPause()
+        setPauseHold(.library, active: true)
+        finishLibraryPauseIfReady()
     }
 
-    /// The bridge's paused callback calls this on the main thread.
-    /// A background pause stays silent with no UI transition. A
-    /// callback with no request is late: the app returned first.
-    func handlePause(snapshot: UIImage?) {
-        guard phase == .playing, EngineState.shared.pauseRequest == .user else { return }
-        EngineState.shared.pauseRequest = nil
+    func setPauseHold(_ reason: SessionPauseHolds.Reason, active: Bool) {
+        if reason == .background { isInBackground = active }
+        guard selectedGame != nil else { return }
+        applyPauseCommand(EngineState.shared.pauseHolds.set(reason, active: active))
+    }
+
+    private func applyPauseCommand(_ command: SessionPauseHolds.Command) {
+        let state = EngineState.shared
+        if state.pauseHolds.countsPlayTime {
+            session.resumeSessionTiming(for: activeSessionGame)
+        } else {
+            session.recordSessionPlayTime()
+        }
+        switch command {
+        case .pause:
+            session.requestPause()
+        case .resume:
+            session.requestResume()
+        case .none: break
+        }
+    }
+
+    /// A native menu can already own an acknowledged pause when the user
+    /// chooses Pause or Quit. Reuse that acknowledgement and its snapshot.
+    private func handlePause() {
+        applyPauseCommand(EngineState.shared.pauseHolds.didPause())
+        finishLibraryPauseIfReady()
+    }
+
+    private func finishLibraryPauseIfReady() {
+        let state = EngineState.shared
+        guard phase == .playing, state.pauseHolds.isParked, state.pauseHolds.contains(.library)
+        else { return }
+        resumeTask?.cancel()
+        resumeTask = nil
         if quitOnPause {
             session.note("The player quit the game.")
             let game = selectedGame
@@ -306,6 +337,7 @@ class AppState {
             return
         }
         let pm = PauseManager.shared
+        let snapshot = session.capturePauseSnapshot()
         withAnimation(Motion.snappy) {
             phase = nil
             pm.pauseSnapshot = snapshot
@@ -335,21 +367,21 @@ class AppState {
         if let container = selectedGame?.container {
             session.restoreCrashMarker(for: container)
         }
-        session.requestResume()
-        session.resumeSessionTiming(for: activeSessionGame)
+        setPauseHold(.library, active: false)
 
         resumeTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .milliseconds(350))
             guard let self, !Task.isCancelled else { return }
-            self.resumeTask = nil
             self.phase = .playing
-            AppWindow.resignKeyToGame()
+            if EngineState.shared.pauseHolds.isRunning { AppWindow.resignKeyToGame() }
             // The frame-rendered callback in EngineSessionCoordinator
             // also flips `snapshotCanFade` once the engine has drawn
             // a real frame. This timed fallback guarantees the
             // snapshot fades out even when the callback is late.
             try? await Task.sleep(for: .milliseconds(300))
-            pm.snapshotCanFade = true
+            guard !Task.isCancelled else { return }
+            self.resumeTask = nil
+            if EngineState.shared.pauseHolds.isRunning { pm.snapshotCanFade = true }
         }
     }
 
@@ -385,13 +417,6 @@ class AppState {
         // wrote before that must still join the set of SPEC 3.6.
         GameSaveWatch.shared.takeReading()
     }
-
-    /// Restarts the session timer after the app returns from the
-    /// background. A paused game has no timer.
-    func resumeSessionTimingAfterBackground() {
-        guard PauseManager.shared.pausedGame == nil else { return }
-        session.resumeSessionTiming(for: selectedGame)
-    }
 }
 
 // MARK: - Missing game core
@@ -418,9 +443,10 @@ extension AppState: EngineSessionCoordinatorDelegate {
 
     func coordinatorFrameRendered() {
         if phase == .loading, !engineReady {
+            applyPauseCommand(EngineState.shared.pauseHolds.didStart())
             Haptics.success()
             engineReady = true
-        } else if phase == .playing {
+        } else if phase == .playing && EngineState.shared.pauseHolds.isRunning {
             PauseManager.shared.snapshotCanFade = true
         }
     }
@@ -441,7 +467,7 @@ extension AppState: EngineSessionCoordinatorDelegate {
         // game goes away below, so read it first.
         let played = activeSessionGame
         quitOnPause = false
-        EngineState.shared.pauseRequest = nil
+        EngineState.shared.pauseHolds = SessionPauseHolds()
         quitTask?.cancel()
         quitTask = nil
         resumeTask?.cancel()
@@ -505,7 +531,13 @@ extension AppState: EngineSessionCoordinatorDelegate {
         ErrorReports.saveRepaired(detail, game: reportedGame, saveLoad: saveLoad)
     }
 
-    func coordinatorEngineDidPause(snapshot: UIImage?) {
-        handlePause(snapshot: snapshot)
+    func coordinatorEngineDidPause() {
+        guard selectedGame != nil else { return }
+        handlePause()
+    }
+
+    func coordinatorEngineDidResume() {
+        guard selectedGame != nil else { return }
+        applyPauseCommand(EngineState.shared.pauseHolds.didResume())
     }
 }

@@ -85,6 +85,11 @@ final class DebugOverlayState {
 
 struct DebugOverlayView: View {
     let state: DebugOverlayState
+    @Environment(\.scenePhase) private var scenePhase
+
+    private var canSample: Bool {
+        scenePhase == .active && EngineState.shared.pauseHolds.isRunning
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xxs) {
@@ -147,8 +152,12 @@ struct DebugOverlayView: View {
                 )
             }
         )
-        .onReceive(Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()) { _ in
-            state.sample()
+        .task(id: canSample) {
+            guard canSample else { return }
+            while !Task.isCancelled {
+                state.sample()
+                do { try await Task.sleep(for: .seconds(1), tolerance: .milliseconds(100)) } catch { return }
+            }
         }
     }
 
