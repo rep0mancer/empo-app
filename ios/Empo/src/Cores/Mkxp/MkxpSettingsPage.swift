@@ -11,6 +11,11 @@ struct MkxpSettingsPage: View {
     var body: some View {
         Group {
             GameplaySettingsSection(model: model)
+            #if os(iOS)
+            if model.supportsDialogueTranslation {
+                DialogueTranslationSettings(model: model)
+            }
+            #endif
             DisplaySettingsSection(model: model, fields: [.smoothScaling, .fixedAspectRatio]) {
                 renderScaleRow
                 fontScaleRow

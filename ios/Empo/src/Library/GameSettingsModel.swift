@@ -40,6 +40,8 @@ final class GameSettingsModel {
     var settings: GameSettings
     let displayDefaults: GameDisplayDefaults
     #if os(iOS)
+    let supportsDialogueTranslation: Bool
+
     /// The screen placement of the layout profile for each orientation.
     /// A form body renders again on every control change, and the
     /// resolve reads two files.
@@ -53,6 +55,9 @@ final class GameSettingsModel {
         let settings = GameSettings.load(from: container.empoStateURL)
         self.settings = settings
         let core = GameCores.core(forGameAt: container.gameURL)
+        #if os(iOS)
+        supportsDialogueTranslation = core is MkxpCore && (MkxpRuntimeProbe.rgssVersion(in: container.gameURL) ?? 1) == 1
+        #endif
         self.core = core
         self.coreSettings = core?.makeSettings(for: container)
         self.displayDefaults = core?.displayDefaults(for: container) ?? GameDisplayDefaults()

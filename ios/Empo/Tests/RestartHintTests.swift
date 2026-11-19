@@ -55,6 +55,27 @@ final class RestartHintTests: XCTestCase {
         XCTAssertEqual(GameSettings.load(from: container.empoStateURL).smoothScaling, false)
     }
 
+    func testDialogueLanguagePersistsPerGameAndResetsToOff() throws {
+        let file = container.empoStateURL.appendingPathComponent("game_settings.json")
+        try Data(#"{"speedMultiplier":3,"customGameKey":42}"#.utf8).write(to: file)
+        let original = GameSettings.load(from: container.empoStateURL)
+        XCTAssertNil(original.dialogueTranslationSource)
+        var edited = original
+        for source in ["es", "en"] {
+            edited.dialogueTranslationSource = source
+            edited.save(to: container.empoStateURL)
+            let loaded = GameSettings.load(from: container.empoStateURL)
+            XCTAssertEqual(loaded.dialogueTranslationSource, source)
+            XCTAssertEqual(loaded.speedMultiplier, 3)
+            XCTAssertEqual(loaded.restartRequiredFieldsChanged(from: original), [String(localized: "Dialogue translation")])
+        }
+        edited.dialogueTranslationSource = nil
+        edited.save(to: container.empoStateURL)
+        XCTAssertEqual(GameSettings.load(from: container.empoStateURL), original)
+        let contents = try JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any]
+        XCTAssertEqual(contents?["customGameKey"] as? Int, 42)
+    }
+
     func testCoreSettingsCompareWithTheSettingsAtLaunch() {
         let launched = MkxpLaunchedSettings(container: container)
         let edited = MkxpSettingsState(container: container)

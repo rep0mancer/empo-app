@@ -208,6 +208,9 @@ struct GameSettings: GameSettingsGroup {
     @Setting<Bool?, RestartFlag> var smoothScaling: Bool?
     @Setting<Bool?, RestartFlag> var fixedAspectRatio: Bool?
 
+    /// Source language for German dialogue. The engine installs its message hooks at launch.
+    @Setting<String?, RestartFlag> var dialogueTranslationSource: String?
+
     /// fast-forward multiplier (2-9, nil = disabled). Runtime-only,
     /// applied via PlayerMoreSheet's Fast forward toggle through
     /// `gamecore_setFastForwardMultiplier`.
@@ -254,6 +257,7 @@ struct GameSettings: GameSettingsGroup {
 
     static func displayLabel(forKey key: String) -> String {
         switch key {
+        case "dialogueTranslationSource": return String(localized: "Dialogue translation")
         case "verticalAlignment": return String(localized: "Screen position")
         case "smoothScaling": return String(localized: "Smooth scaling")
         case "fixedAspectRatio": return String(localized: "Fixed aspect ratio")

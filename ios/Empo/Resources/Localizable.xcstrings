@@ -13756,6 +13756,16 @@
         }
       }
     },
+    "Checking languages…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprachpakete werden geprüft …"
+          }
+        }
+      }
+    },
     "Checking the location…" : {
       "localizations" : {
         "de" : {
@@ -21254,6 +21264,16 @@
         }
       }
     },
+    "Dialogue translation" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dialogübersetzung"
+          }
+        }
+      }
+    },
     "Didn't finish" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21775,6 +21795,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下方向键"
+          }
+        }
+      }
+    },
+    "Download languages…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprachpakete laden …"
           }
         }
       }
@@ -28342,6 +28372,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "引擎"
+          }
+        }
+      }
+    },
+    "English → German" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Englisch → Deutsch"
           }
         }
       }
@@ -44882,6 +44922,16 @@
         }
       }
     },
+    "Preparing languages…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprachpakete werden vorbereitet …"
+          }
+        }
+      }
+    },
     "Preparing preview…" : {
       "localizations" : {
         "de" : {
@@ -47579,6 +47629,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "读取可用空间"
+          }
+        }
+      }
+    },
+    "Ready for offline translation" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für die Offline-Übersetzung bereit"
           }
         }
       }
@@ -56527,6 +56587,16 @@
         }
       }
     },
+    "Show German text in the game’s dialogue boxes. Applies when you next launch this game." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeigt deutschen Text in den Dialogfenstern des Spiels. Die Änderung gilt beim nächsten Spielstart."
+          }
+        }
+      }
+    },
     "Show Log" : {
       "localizations" : {
         "de" : {
@@ -59147,6 +59217,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "GitHub 上的源代码"
+          }
+        }
+      }
+    },
+    "Spanish → German" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spanisch → Deutsch"
           }
         }
       }
@@ -67254,6 +67334,16 @@
         }
       }
     },
+    "This language pair is unavailable on this device." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Sprachpaar ist auf diesem Gerät nicht verfügbar."
+          }
+        }
+      }
+    },
     "This layout has the maximum of %lld buttons. Delete one to add another." : {
       "localizations" : {
         "de" : {
@@ -69517,6 +69607,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "触控板按下"
+          }
+        }
+      }
+    },
+    "Translate dialogue" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dialoge übersetzen"
           }
         }
       }
