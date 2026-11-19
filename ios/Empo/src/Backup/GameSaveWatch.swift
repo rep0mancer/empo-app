@@ -25,8 +25,7 @@ final class GameSaveWatch {
 
     /// The joins of this app launch, keyed by container folder name.
     ///
-    /// They live in memory only. A backup run reads the joins of
-    /// earlier launches back from the last manifest of its target.
+    /// A patch also reads durable joins from EmpoState and the local manifest cache.
     private var joinedPathsByGame: [String: Set<String>] = [:]
 
     /// The paths over the 50 MB limit that wait for an answer, per
@@ -107,7 +106,7 @@ final class GameSaveWatch {
         reading = Task { [weak self] in
             await earlier?.value
             guard let result = await pass.value.result else { return }
-            self?.apply(result, forGame: container.id)
+            self?.apply(result, container: container)
         }
     }
 
@@ -155,7 +154,8 @@ final class GameSaveWatch {
         return Pass(after: after, result: result)
     }
 
-    private func apply(_ result: RuntimeWatchResult, forGame containerId: String) {
+    private func apply(_ result: RuntimeWatchResult, container: GameContainer) {
+        let containerId = container.id
         if !result.isEmpty {
             BackupLog.debug(
                 "GameSaveWatch",
@@ -164,7 +164,7 @@ final class GameSaveWatch {
                     + (result.joined + result.asks).joined(separator: ", "))
         }
         if !result.joined.isEmpty {
-            joinedPathsByGame[containerId, default: []].formUnion(result.joined)
+            record(result.joined, for: container)
         }
         if !result.asks.isEmpty {
             var asks = pendingAsksByGame[containerId] ?? []
@@ -184,6 +184,28 @@ final class GameSaveWatch {
         return (joinedPathsByGame[containerId] ?? []).sorted()
     }
 
+    private func record(_ paths: [String], for container: GameContainer) {
+        joinedPathsByGame[container.id, default: []].formUnion(paths)
+        do {
+            _ = try RuntimeWatchHistory.merge(joinedPathsByGame[container.id] ?? [], in: container.empoStateURL)
+        } catch {
+            BackupLog.line("GameSaveWatch", "Could not save the watched paths for \(container.id): \(error)")
+        }
+    }
+
+    /// Container-relative paths previously identified as saves, including
+    /// joins from versions that stored them only in the last uploaded manifest.
+    func patchPaths(for container: GameContainer) async throws -> [String] {
+        await reading?.value
+        let database = BackupRoot.layout.stateDatabase
+        let name = container.folderName
+        let prior = try await Task.detached(priority: .utility) {
+            try RuntimeWatchHistory.cachedJoins(in: database, folderName: name)
+        }.value
+        let known = prior.union(joinedPathsByGame[container.id] ?? [])
+        return try RuntimeWatchHistory.merge(known, in: container.empoStateURL)
+    }
+
     /// The paths over the 50 MB limit that wait for an answer.
     func pendingAsks(forGame containerId: String) -> [String] {
         pendingAsksByGame[containerId] ?? []
@@ -193,7 +215,7 @@ final class GameSaveWatch {
     /// watched write.
     func acceptAsk(path: String, forGame containerId: String) {
         pendingAsksByGame[containerId]?.removeAll { $0 == path }
-        joinedPathsByGame[containerId, default: []].insert(path)
+        record([path], for: GameContainer(folderName: containerId))
     }
 
     /// The user said no. The path becomes a declined suggestion in

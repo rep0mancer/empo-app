@@ -65,10 +65,11 @@ public final class SQLiteDatabase {
     private var handle: OpaquePointer?
 
     /// Opens the file, or an in-memory database when `url` is `nil`.
-    public init(url: URL?) throws {
+    public init(url: URL?, readOnly: Bool = false) throws {
         let path = url?.path ?? ":memory:"
         var handle: OpaquePointer?
-        let flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_NOMUTEX
+        let access = readOnly ? SQLITE_OPEN_READONLY : (SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE)
+        let flags = access | SQLITE_OPEN_NOMUTEX
         let code = sqlite3_open_v2(path, &handle, flags, nil)
         guard code == SQLITE_OK, let handle else {
             let message = handle.map { String(cString: sqlite3_errmsg($0)) } ?? "cannot open"
@@ -80,8 +81,10 @@ public final class SQLiteDatabase {
         // per 6.2. The write-ahead log keeps a killed process from
         // leaving a half-written page in the main file, and the
         // synchronous setting still fsyncs at every checkpoint.
-        try execute("PRAGMA journal_mode = WAL")
-        try execute("PRAGMA synchronous = NORMAL")
+        if !readOnly {
+            try execute("PRAGMA journal_mode = WAL")
+            try execute("PRAGMA synchronous = NORMAL")
+        }
         try execute("PRAGMA foreign_keys = ON")
         try execute("PRAGMA busy_timeout = 5000")
     }
