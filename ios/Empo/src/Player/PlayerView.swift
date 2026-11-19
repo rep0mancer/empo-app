@@ -23,6 +23,7 @@ struct PlayerView: View {
     @State private var toolbarIdleTask: Task<Void, Never>?
     @State private var actions = PlayerActionRegistry()
 
+    @State private var drawerSnapshot: UIImage?
     @State private var resumeSnapshot: UIImage?
     @State private var snapshotOpacity: Double = 1
     @State private var input = SessionInput()
@@ -92,6 +93,15 @@ struct PlayerView: View {
             let screenContext = editMode ? screenGizmoContext(canvas: canvas, gameRect: gameRect) : nil
 
             ZStack {
+                if let drawerSnapshot, let companion, !isPortrait {
+                    Color.black.allowsHitTesting(false)
+                    PauseSnapshotOverlay(
+                        snapshot: drawerSnapshot,
+                        rect: companion.drawerSnapshotRect(
+                            imageSize: drawerSnapshot.size, publishedViewport: gameRect,
+                            placement: activeScreenPlacement))
+                }
+
                 if settings.showTouchZone, !gameRect.isEmpty {
                     // gameRect is in window points. The GeometryReader
                     // ignores the safe area, so its space is the window space.
@@ -272,6 +282,11 @@ struct PlayerView: View {
                 if let companion {
                     companionPanel(companion)
                 }
+            }
+            .onChange(of: companion != nil && !isPortrait && engineState.pauseHolds.isParked) { _, parked in
+                // Both core runners have the last presented RGBA frame by the pause acknowledgement.
+                // Rotation may already have cleared SDL's drawable while the VM is parked.
+                drawerSnapshot = parked ? EngineSessionCoordinator.shared.capturePauseSnapshot() : nil
             }
             .onChange(of: companion?.portraitViewport, initial: true) { _, region in
                 layout.screenRegion.setCompanionRegion(region)
