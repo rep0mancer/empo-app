@@ -60,17 +60,9 @@ struct FunctionButton: View {
                         isActive ? Color.brand : .white.opacity(isPressed ? 1.0 : 0.9))
             }
         )
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(action.localizedName)
-        .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier(
             "pokedaisy.toggle", isEnabled: action.id == EmpoActionCatalog.togglePokeDaisy
         )
-        .accessibilityAction {
-            guard !editing else { return }
-            onPress()
-            onRelease()
-        }
     }
 }
 
@@ -132,8 +124,6 @@ struct CircularControlButton<Face: View>: View {
         .animation(Motion.controlPress, value: isPressed)
         .darkGlass()
         .contentShape(ControlTouchCapture.hitShape)
-        .accessibilityLabel(accessibilityLabel)
-        .accessibilityAddTraits(.isButton)
         .overlay {
             ControlTouchCapture(
                 enabled: !editing,
@@ -146,6 +136,15 @@ struct CircularControlButton<Face: View>: View {
                     }
                 }
             )
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction {
+            guard !editing, !isPressed else { return }
+            // Mapped game keys retain their regular minimum hold in HeldKeys.
+            onPress()
+            onRelease()
         }
         .onChange(of: editing) { _, newValue in
             if newValue {

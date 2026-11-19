@@ -164,36 +164,35 @@ struct PlayerView: View {
                 }
 
                 if controlsVisible && !drawerPresented {
-                    PlayerToolbar(
-                        isPortrait: isPortrait,
-                        safeArea: safeArea,
-                        geoSize: geo.size,
-                        controlsHidden: controlsHidden,
-                        keyboardShown: keyboardMode,
-                        toolbarOpacity: toolbarOpacity,
-                        onToggleKeyboard: { toggleKeyboard() },
-                        onToggleEditMode: { toggleEditMode() },
-                        onToggleHideControls: { toggleHideControls() },
-                        onShowMore: openMore,
-                        onResetIdleTimer: { resetToolbarIdleTimer() }
-                    )
-                    .opacity(editMode ? 0 : 1)
-                    .allowsHitTesting(!editMode)
-
-                    PlayerEditToolbar(
-                        controlsMinY: controlsMinY,
-                        safeArea: controlsSafeArea,
-                        geoSize: geo.size,
-                        layout: layout,
-                        editDialog: $editDialog,
-                        onDone: { toggleEditMode() }
-                    )
-                    // Fade only. Hit testing stays on: a gesture that
-                    // the system cancels can leave the drag flag set,
-                    // and the buttons would then stop working.
-                    .opacity(editMode ? (layout.screenDragActive ? 0.15 : 1) : 0)
-                    .animation(.easeInOut(duration: 0.15), value: layout.screenDragActive)
-                    .allowsHitTesting(editMode)
+                    if editMode {
+                        PlayerEditToolbar(
+                            controlsMinY: controlsMinY,
+                            safeArea: controlsSafeArea,
+                            geoSize: geo.size,
+                            layout: layout,
+                            editDialog: $editDialog,
+                            onDone: { toggleEditMode() }
+                        )
+                        // Fade only. Hit testing stays on: a gesture that
+                        // the system cancels can leave the drag flag set,
+                        // and the buttons would then stop working.
+                        .opacity(layout.screenDragActive ? 0.15 : 1)
+                        .animation(.easeInOut(duration: 0.15), value: layout.screenDragActive)
+                    } else {
+                        PlayerToolbar(
+                            isPortrait: isPortrait,
+                            safeArea: safeArea,
+                            geoSize: geo.size,
+                            controlsHidden: controlsHidden,
+                            keyboardShown: keyboardMode,
+                            toolbarOpacity: toolbarOpacity,
+                            onToggleKeyboard: { toggleKeyboard() },
+                            onToggleEditMode: { toggleEditMode() },
+                            onToggleHideControls: { toggleHideControls() },
+                            onShowMore: openMore,
+                            onResetIdleTimer: { resetToolbarIdleTimer() }
+                        )
+                    }
                 }
 
                 DraggableDebugOverlay(
