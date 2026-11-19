@@ -6455,6 +6455,96 @@
         }
       }
     },
+    "Apply patch" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patch anwenden"
+          }
+        }
+      }
+    },
+    "Apply patch to %@?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patch auf „%@“ anwenden?"
+          }
+        }
+      }
+    },
+    "Apply patch…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patch anwenden…"
+          }
+        }
+      }
+    },
+    "Applying patch…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patch wird angewendet…"
+          }
+        }
+      }
+    },
+    "Choose a patch file…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patch-Datei auswählen…"
+          }
+        }
+      }
+    },
+    "Choose a patch folder…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patch-Ordner auswählen…"
+          }
+        }
+      }
+    },
+    "Choose a ZIP, 7z or RAR archive, a replacement asset, or a folder." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle ein ZIP-, 7z- oder RAR-Archiv, eine einzelne Ersatzdatei oder einen Ordner."
+          }
+        }
+      }
+    },
+    "Close the running game and wait for other file operations to finish." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beende das laufende Spiel und warte, bis andere Dateivorgänge abgeschlossen sind."
+          }
+        }
+      }
+    },
+    "Discard preview" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorschau verwerfen"
+          }
+        }
+      }
+    },
     "Empo can't read your list of locations." : {
       "localizations" : {
         "de" : {
@@ -29727,6 +29817,26 @@
         }
       }
     },
+    "Files to add" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Dateien"
+          }
+        }
+      }
+    },
+    "Files to replace" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zu ersetzende Dateien"
+          }
+        }
+      }
+    },
     "Fill color" : {
       "localizations" : {
         "de" : {
@@ -34902,6 +35012,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "卡片内"
+          }
+        }
+      }
+    },
+    "Install game patch" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spiel-Patch installieren"
           }
         }
       }
@@ -43968,6 +44088,16 @@
         }
       }
     },
+    "Patch applied." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patch angewendet."
+          }
+        }
+      }
+    },
     "Pause" : {
       "localizations" : {
         "de" : {
@@ -44492,6 +44622,16 @@
         }
       }
     },
+    "Preparing preview…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorschau wird vorbereitet…"
+          }
+        }
+      }
+    },
     "Press a button on your controller to find it here." : {
       "localizations" : {
         "de" : {
@@ -44720,6 +44860,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "隐私政策"
+          }
+        }
+      }
+    },
+    "Protected files kept" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geschützte Dateien, die erhalten bleiben"
           }
         }
       }
@@ -63044,6 +63194,16 @@
         }
       }
     },
+    "The updated folder is no longer a recognized RPG Maker game." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der aktualisierte Ordner wird nicht mehr als RPG-Maker-Spiel erkannt."
+          }
+        }
+      }
+    },
     "The user name or the password is wrong. Check both and try again." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -67783,6 +67943,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "这个备份位置还需要 %@ 空间才能进行下一次备份。"
+          }
+        }
+      }
+    },
+    "This patch contains no files to install." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Patch enthält keine zu installierenden Dateien."
           }
         }
       }

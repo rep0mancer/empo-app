@@ -203,6 +203,17 @@ struct GameInfoView: View {
                                         .padding(.horizontal, Spacing.xl)
                                         .padding(.vertical, Spacing.lg)
                                 }
+
+                                Divider().padding(.leading, Spacing.xl)
+
+                                NavigationLink {
+                                    GamePatchView(game: game)
+                                } label: {
+                                    Label("Install game patch", systemImage: "shippingbox")
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding(.horizontal, Spacing.xl)
+                                        .padding(.vertical, Spacing.lg)
+                                }
                             }
                         }
 
