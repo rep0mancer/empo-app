@@ -6,7 +6,7 @@ permissions:
   contents: read
 jobs:
   baseline:
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -16,8 +16,6 @@ jobs:
       - uses: ./.github/actions/prepare-xcode-project
       - name: Build the unmodified Empo scheme for a generic iPhone
         shell: bash
-        env:
-          DEVELOPER_DIR: /Applications/Xcode_26.4.1.app/Contents/Developer
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = 3f71fe667fff30f438912f524215a33943e4eb23
