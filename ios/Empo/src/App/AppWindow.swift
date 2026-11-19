@@ -223,8 +223,12 @@ class AppWindow: UIWindow {
     /// top of the sensor strip. `statusBarFrame` reports a 2-point bar
     /// there, so this is the only source for the block's bottom edge.
     static var occludedRects: [CGRect] {
+        #if canImport(SwiftUI, _version: 8.1)
         guard #available(iOS 27.1, *), let view = hostView else { return [] }
         return view.reservedRegions(kind: .occlusion).map(\.frame)
+        #else
+        return []
+        #endif
     }
 
     static var currentSafeArea: EdgeInsets {

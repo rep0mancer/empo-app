@@ -62,23 +62,17 @@ update_pin() {
 }
 
 FAILED=0
-update_pin cores/mkxp/.version MKXP_CORE mateo-m/mkxp-z-apple-mobile '^v[0-9]+$' || FAILED=1
 update_pin cores/psdk/.version PSDK_CORE mateo-m/psdk-apple-mobile '^v[0-9]+$' || FAILED=1
 update_pin cores/mvmz/.version MVMZ_CORE mateo-m/mvmz-apple-mobile '^v[0-9]+$' || FAILED=1
 
-# The mkxp-z core compiles against one ANGLE release, and the MANIFEST
-# at the start of its archive names it. cores/mkxp/build-framework-ios.sh
-# stops the build when the ANGLE pin names another one.
-# shellcheck disable=SC1091
+# The personal engine pins its ANGLE version in the source recipe.
 . cores/mkxp/.version
-# tar can stop reading once it has MANIFEST, and curl then fails, so
-# only an empty result counts as a failure.
-ANGLE_TAG=$(curl -fsL "https://github.com/mateo-m/mkxp-z-apple-mobile/releases/download/$MKXP_CORE_VERSION/$MKXP_CORE_ASSET" |
-    tar -xzOf - MANIFEST | sed -n 's/^angle=//p') || true
+ANGLE_TAG=$(curl -fsSL --retry 3 "https://raw.githubusercontent.com/$MKXP_CORE_REPO/$MKXP_CORE_COMMIT/deps/common.make" |
+    sed -n 's/^ANGLE_VERSION := //p') || true
 if [ -n "$ANGLE_TAG" ]; then
     update_pin ios/Dependencies/ANGLE/.version ANGLE mateo-m/empo-deps '^angle-' "$ANGLE_TAG" || FAILED=1
 else
-    echo "error: could not read the ANGLE release from the MANIFEST of mkxp-z $MKXP_CORE_VERSION" >&2
+    echo "error: could not read ANGLE_VERSION from $MKXP_CORE_COMMIT" >&2
     FAILED=1
 fi
 

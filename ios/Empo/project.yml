@@ -97,7 +97,8 @@ settings:
       ENABLE_TESTABILITY: YES # yamllint disable-line rule:truthy
     Release:
       OTHER_CFLAGS: "-fdeclspec -O3"
-      PRODUCT_BUNDLE_IDENTIFIER: sh.mateo.empo
+      # Keep the personal iPhone build and its Files container separate from upstream Empo.
+      PRODUCT_BUNDLE_IDENTIFIER: io.github.rep0mancer.empo
 targetTemplates:
   # An extension that the app embeds. Its files are in the folder of
   # its name.

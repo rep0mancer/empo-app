@@ -301,6 +301,8 @@ void gamecore_setSetting(const char *key, const char *value);
 #define GAMECORE_SETTING_IN_GAME_KEYBOARD "inGameKeyboard"
 #define GAMECORE_SETTING_JOIPLAY_COMPAT "joiplayCompat"
 #define GAMECORE_SETTING_NETWORK_ENABLED "networkEnabled"
+// MKXP render ceiling at normal speed: "0" (game default), "40", or "60".
+#define GAMECORE_SETTING_PRESENTATION_FPS "presentationFPS"
 
 // Lines about the running engine for the debug overlay, one per line.
 // Call it on the main thread. The text stays valid until the next call.

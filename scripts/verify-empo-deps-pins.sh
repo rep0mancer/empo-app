@@ -115,7 +115,10 @@ verify_pin_file() {
 }
 
 verify_pin_file "ANGLE" "$ANGLE_VERSION_FILE" ANGLE_VERSION ANGLE_SHA256 ANGLE_ASSET "$DEPS_REPO"
-verify_pin_file "mkxp-z core" "$MKXP_VERSION_FILE" MKXP_CORE_VERSION MKXP_CORE_SHA256 MKXP_CORE_ASSET mateo-m/mkxp-z-apple-mobile
+. "$MKXP_VERSION_FILE"
+actual_commit=$("$REPO_ROOT/scripts/gh-retry.sh" api "repos/$MKXP_CORE_REPO/commits/$MKXP_CORE_COMMIT" --jq .sha)
+[[ "$actual_commit" == "$MKXP_CORE_COMMIT" && "$actual_commit" =~ ^[0-9a-f]{40}$ ]] || die "MKXP source revision mismatch"
+printf 'verify-empo-deps-pins: MKXP source OK (%s)\n' "$actual_commit"
 verify_pin_file "PSDK core" "$PSDK_VERSION_FILE" PSDK_CORE_VERSION PSDK_CORE_SHA256 PSDK_CORE_ASSET mateo-m/psdk-apple-mobile
 verify_pin_file "MV/MZ core" "$MVMZ_VERSION_FILE" MVMZ_CORE_VERSION MVMZ_CORE_SHA256 MVMZ_CORE_ASSET mateo-m/mvmz-apple-mobile
 

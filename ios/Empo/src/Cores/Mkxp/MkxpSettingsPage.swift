@@ -30,6 +30,19 @@ struct MkxpSettingsPage: View {
             LayoutSettingsSection(model: model)
             #endif
             Section {
+                Picker(
+                    "Presentation limit",
+                    selection: Binding(
+                        get: { state.settings.presentationLimit },
+                        set: { state.settings.presentationFPS = $0 == 0 ? nil : $0 }
+                    )
+                ) {
+                    Text("Game default").tag(0)
+                    Text("40 fps").tag(40)
+                    Text("60 fps").tag(60)
+                }
+                SettingsDescription(
+                    Text("Limits frames drawn at normal game speed. Applies at the next launch."))
                 MkxpEngineRow(state: state, field: .frameSkip) {
                     SettingsToggle(
                         title: "Frame skip",

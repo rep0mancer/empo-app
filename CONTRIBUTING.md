@@ -17,14 +17,15 @@ Issues, ideas, and PRs are welcome.
 
 ## Build
 
-Each core comes from the release of its own repo: [mkxp-z-apple-mobile](https://github.com/mateo-m/mkxp-z-apple-mobile), [psdk-apple-mobile](https://github.com/mateo-m/psdk-apple-mobile), and [mvmz-apple-mobile](https://github.com/mateo-m/mvmz-apple-mobile). The Xcode build downloads the release that `cores/<core>/.version` pins, and wraps it in a framework. After you clone:
+This personal branch builds MKXP from the engine commit in `cores/mkxp/.version`. The archive and its checksum receipt stay in the ignored `ios/Dependencies/` directory. Xcode fetches the pinned PSDK, MV/MZ and ANGLE dependencies.
 
 ```sh
-brew install bun xcodegen gh
-git clone git@github.com:mateo-m/empo-app.git
+brew install bun xcodegen gh automake autoconf libtool cmake pkg-config bison
+git clone --branch personal/phase-1 https://github.com/rep0mancer/empo-app.git
 cd empo-app
 bun install
-
+cores/mkxp/rebuild-local.sh
+touch ios/Empo/Signing.xcconfig
 xcodegen generate --spec ios/Empo/project.yml --project ios/Empo
 xcodebuild -project ios/Empo/Empo.xcodeproj -scheme Empo \
   -destination 'generic/platform=iOS Simulator' -configuration Debug build
@@ -34,6 +35,8 @@ Build the scheme, not the target. A `-target` build resolves SwiftPM
 packages through the legacy build system, which cannot find the
 generated module map for the `json5cpp` C package and fails with
 `module map file ... json5cpp.modulemap not found`.
+
+The personal iPhone Release uses `io.github.rep0mancer.empo`. Its Files container is separate from the upstream app. For a team without the upstream iCloud container, set `EMPO_ENTITLEMENTS = Empo-NoICloud.entitlements` in your local signing configuration.
 
 ### Mac app
 
@@ -49,9 +52,9 @@ A Debug build has the bundle ID `sh.mateo.empo.dev`. The app runs in the macOS s
 
 ### Change an engine
 
-Make the change in the engine repo, and follow the build steps of its README. When its release workflow publishes a new version, set the version and the sha256 from the release notes in `cores/<core>/.version`.
+For MKXP, commit the engine source on your fork, update its full commit ID in `cores/mkxp/.version`, and run `cores/mkxp/rebuild-local.sh`. The script checks out that revision and its submodules, builds dependencies separately for iOS, Simulator and macOS, then packages all three arm64 slices. An existing clean checkout at that revision with trusted, matching dependency trees can use `cores/mkxp/rebuild-local.sh --engine-tree /absolute/path/to/engine`. This mode checks core and binding source fingerprints before packaging. The host checks the archive SHA-256 and embedded source revision when extracting it.
 
-To test an engine build before its release, put the tarball of `tools/package-ios.sh` in `ios/Dependencies/mkxp-core.tar.gz`, and set `MKXP_CORE_SHA256` in `cores/mkxp/.version` to its sha256.
+PSDK and MV/MZ continue to use the upstream release pins in their respective core directories.
 
 ### Simulator install
 

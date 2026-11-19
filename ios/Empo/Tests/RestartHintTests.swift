@@ -67,6 +67,19 @@ final class RestartHintTests: XCTestCase {
             launched.restartRequiredChanges(to: MkxpSettingsState(container: container)), ["Fix-up scripts"])
     }
 
+    func testPresentationLimitIsPerGameAndRequiresRestart() {
+        let launched = MkxpLaunchedSettings(container: container)
+        let edited = MkxpSettingsState(container: container)
+        XCTAssertEqual(edited.settings.presentationLimit, 0)
+        for requested in [40, 60, 75] {
+            edited.settings.presentationFPS = requested
+            edited.save()
+            let loaded = MkxpSettingsState(container: container)
+            XCTAssertEqual(loaded.settings.presentationLimit, requested == 75 ? 0 : requested)
+            XCTAssertEqual(launched.restartRequiredChanges(to: loaded), ["Presentation limit"])
+        }
+    }
+
     func testSameNameImportNeedsARestart() throws {
         choose(.imported)
         try writeSoundSet(into: MidiSoundSet.game(container).folderURL)

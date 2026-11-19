@@ -8,6 +8,14 @@ import SwiftUI
 /// The per-game settings only the RPG Maker core reads. They share
 /// `game_settings.json` with `GameSettings`.
 struct MkxpSettings: GameSettingsGroup {
+    /// An optional cap on submitted frames. The engine clocks game logic separately.
+    @Setting<Int?, RestartFlag> var presentationFPS: Int?
+
+    var presentationLimit: Int {
+        guard let presentationFPS, [40, 60].contains(presentationFPS) else { return 0 }
+        return presentationFPS
+    }
+
     /// Runs the engine's fix-up scripts after the game loads.
     @Setting<Bool?, RestartFlag> var postloadScripts: Bool?
 
@@ -39,6 +47,7 @@ struct MkxpSettings: GameSettingsGroup {
 
     static func displayLabel(forKey key: String) -> String {
         switch key {
+        case "presentationFPS": return String(localized: "Presentation limit")
         case "useInGameKeyboard": return String(localized: "In-game keyboard")
         case "postloadScripts": return String(localized: "Fix-up scripts")
         case "useModernRuby": return String(localized: "Ruby compatibility mode")

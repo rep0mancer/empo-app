@@ -27,14 +27,19 @@ struct SheetBarButton: View {
     }
 
     var body: some View {
+        #if canImport(SwiftUI, _version: 8.1)
         if #available(iOS 27.1, macOS 27.1, *) {
             VerticalBarButton(title: title, systemImage: systemImage, action: action)
         } else {
             Button(title, action: action)
         }
+        #else
+        Button(title, action: action)
+        #endif
     }
 }
 
+#if canImport(SwiftUI, _version: 8.1)
 @available(iOS 27.1, macOS 27.1, *)
 private struct VerticalBarButton: View {
     let title: LocalizedStringResource
@@ -52,3 +57,4 @@ private struct VerticalBarButton: View {
         }
     }
 }
+#endif

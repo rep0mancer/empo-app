@@ -1,61 +1,34 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Mateo M. Additional terms apply: see ADDITIONAL-TERMS.md.
-
-# Downloads the engine that cores/mkxp/.version pins, from
-# the releases of mateo-m/mkxp-z-apple-mobile, into
-# ios/Dependencies/mkxp-core. That repo's CI builds the release from a
-# tagged public commit.
-#
-# The folder holds include/app_bridge.h, the engine assets, and the
-# libraries of each SDK with a LINK file that lists them.
-# cores/mkxp/build-framework-ios.sh links them into
-# MkxpCore.framework.
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-PIN="$REPO_ROOT/cores/mkxp/.version"
-DEST="$REPO_ROOT/ios/Dependencies/mkxp-core"
-CORE_REPO=mateo-m/mkxp-z-apple-mobile
-
-# Xcode and a script can run this at the same time. lockf runs one at a
-# time, and the second then finds the core in place.
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+. "$ROOT/cores/mkxp/.version"
+DEST="$ROOT/ios/Dependencies/mkxp-core"
 if [ -z "${MKXP_CORE_LOCKED:-}" ]; then
     MKXP_CORE_LOCKED=1 exec lockf -k "$DEST.lock" "$0" "$@"
 fi
 
-# shellcheck disable=SC1090
-. "$PIN"
-if [ -z "${MKXP_CORE_VERSION:-}" ] || [ -z "${MKXP_CORE_SHA256:-}" ] || [ -z "${MKXP_CORE_ASSET:-}" ]; then
-    echo "error: $PIN must set MKXP_CORE_VERSION, MKXP_CORE_SHA256 and MKXP_CORE_ASSET" >&2
+read -r commit digest < "$DEST.receipt" 2>/dev/null || true
+if [[ "${commit:-}" != "$MKXP_CORE_COMMIT" || ! "${digest:-}" =~ ^[0-9a-f]{64}$ ]]; then
+    echo "error: build the pinned personal engine first: cores/mkxp/rebuild-local.sh" >&2
     exit 1
 fi
-
-FETCHED="$MKXP_CORE_VERSION $MKXP_CORE_SHA256"
-if [ "$(cat "$DEST/.fetched-pin" 2>/dev/null)" = "$FETCHED" ]; then
+stamp="$MKXP_CORE_VERSION $commit $digest"
+if [[ "$(cat "$DEST/.fetched-pin" 2>/dev/null)" == "$stamp" &&
+      "$(sed -n 's/^commit=//p' "$DEST/MANIFEST" 2>/dev/null)" == "$commit" ]]; then
     exit 0
 fi
 
 WORK="$(mktemp -d "$DEST.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
-TAR="$WORK/$MKXP_CORE_ASSET"
-# A local build of the engine, to test it before its release. The pin
-# must give its sha256.
-if [ -f "$DEST.tar.gz" ]; then
-    echo "==> using the local engine $DEST.tar.gz"
-    cp "$DEST.tar.gz" "$TAR"
-else
-    echo "==> fetching the engine $MKXP_CORE_VERSION from $CORE_REPO"
-    curl -fL --retry 3 -o "$TAR" \
-        "https://github.com/$CORE_REPO/releases/download/$MKXP_CORE_VERSION/$MKXP_CORE_ASSET"
-fi
-echo "$MKXP_CORE_SHA256  $TAR" | shasum -a 256 -c >/dev/null || {
-    echo "error: $MKXP_CORE_ASSET does not match MKXP_CORE_SHA256 in $PIN" >&2
+echo "$digest  $DEST.tar.gz" | shasum -a 256 -c >/dev/null
+tar -xzf "$DEST.tar.gz" -C "$WORK"
+if [[ "$(sed -n 's/^commit=//p' "$WORK/MANIFEST")" != "$commit" ]]; then
+    echo "error: local MKXP archive has a different source revision. Run cores/mkxp/rebuild-local.sh" >&2
     exit 1
-}
-
-mkdir "$WORK/core"
-tar -xzf "$TAR" -C "$WORK/core"
-printf '%s\n' "$FETCHED" >"$WORK/core/.fetched-pin"
+fi
+printf '%s\n' "$stamp" > "$WORK/.fetched-pin"
 rm -rf "$DEST"
-mv "$WORK/core" "$DEST"
+mv "$WORK" "$DEST"

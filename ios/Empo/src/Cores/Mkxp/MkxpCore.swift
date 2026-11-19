@@ -195,6 +195,7 @@ struct MkxpCore: GameCore {
             CoreSetting(GAMECORE_SETTING_IN_GAME_KEYBOARD, inGameKeyboard),
             CoreSetting(GAMECORE_SETTING_JOIPLAY_COMPAT, settings.joiplayCompatEnabled),
             CoreSetting(GAMECORE_SETTING_NETWORK_ENABLED, settings.networkAccessEnabled),
+            CoreSetting(GAMECORE_SETTING_PRESENTATION_FPS, String(settings.presentationLimit)),
             CoreSetting(GAMECORE_SETTING_CONFIG_OVERLAY, overlay ?? ""),
         ]
     }
