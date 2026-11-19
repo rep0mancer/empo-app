@@ -157,6 +157,14 @@ static void onSaveEvent(GameCoreSaveEvent event, const char *detail, void *userd
     [host() saveEvent:event detail:text(detail)];
 }
 
+static void onTelemetry(const char *bytes, size_t length, void *userdata) {
+    if (bytes != NULL && length > 0 && length <= GAMECORE_MAX_TELEMETRY_BYTES) {
+        @autoreleasepool {
+            [host() telemetrySnapshot:[NSData dataWithBytes:bytes length:length]];
+        }
+    }
+}
+
 // The core waits in this callback until the app resumes it, so the
 // snapshot it copies is the paused frame.
 static void onPaused(void *userdata) {
@@ -281,6 +289,10 @@ void EmpoGameProcessSceneHasSize(void) {
         NSLog(@"[game-process] %d opened %@", getpid(), framework);
         reply(nil);
     });
+}
+
+- (void)setTelemetryEnabled:(BOOL)enabled {
+    EmpoGameProcessOnMain(^{ gamecore_setTelemetryCallback(enabled ? onTelemetry : NULL, NULL); });
 }
 
 - (void)runApp {

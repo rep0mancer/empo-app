@@ -363,6 +363,11 @@ void gamecore_setInfoMessageCallback(gamecore_InfoMessageCallback cb, void *user
     gInfoMessage = (Callback){(void *)cb, userdata};
 }
 
+void gamecore_setTelemetryCallback(gamecore_TelemetryCallback cb, void *userdata) {
+    (void)cb;
+    (void)userdata;
+}
+
 void gamecore_setSaveEventCallback(gamecore_SaveEventCallback cb, void *userdata) {
 }
 

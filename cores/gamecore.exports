@@ -41,6 +41,7 @@ _gamecore_setSafeAreaInsets
 _gamecore_setSaveEventCallback
 _gamecore_setSetting
 _gamecore_setShowViewportBounds
+_gamecore_setTelemetryCallback
 _gamecore_setTextInputModeCallback
 _gamecore_setTouchMouseEnabled
 _gamecore_setViewportBoundsColor

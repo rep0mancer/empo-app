@@ -36,6 +36,7 @@ final class EngineSessionCoordinator {
     private let crashTracker = CrashTracker()
     private let sessionLogger = SessionLogger()
     private var lifecycleGeneration = 0
+    private nonisolated static let telemetryInbox = TelemetryInbox()
     private var textInputModeHandler: ((Bool) -> Void)?
     /// The core `openCore` opened, or nil before it runs. The player
     /// UI reads this to hide a row the running core does not answer.
@@ -135,6 +136,7 @@ final class EngineSessionCoordinator {
     /// Kills a paused or ended game, so that the next one can start.
     /// The pause or the end already recorded its play time.
     func killSession(of game: GameEntry?) {
+        endTelemetry()
         lifecycleGeneration += 1
         if let container = game?.container {
             crashTracker.removeMarker(for: container)
@@ -310,6 +312,23 @@ final class EngineSessionCoordinator {
     private func registerSessionLifecycleCallbacks() {
         lifecycleGeneration += 1
         let token = UnsafeMutableRawPointer(bitPattern: lifecycleGeneration)
+        EssentialsTelemetryStore.shared.reset()
+        if openedCore is MkxpCore {
+            Self.telemetryInbox.reset(to: lifecycleGeneration)
+            gamecore_setTelemetryCallback(
+                { bytes, count, context in
+                    let generation = Int(bitPattern: context)
+                    let inbox = EngineSessionCoordinator.telemetryInbox
+                    guard inbox.offer(bytes, count: count, generation: generation) else { return }
+                    Task { @MainActor in
+                        if let data = inbox.take(generation: generation) {
+                            EssentialsTelemetryStore.shared.receive(data)
+                        }
+                    }
+                }, token)
+        } else {
+            Self.telemetryInbox.reset()
+        }
         gamecore_setEngineTerminatedCallback(
             { context in
                 let generation = Int(bitPattern: context)
@@ -348,7 +367,16 @@ final class EngineSessionCoordinator {
             }, token)
     }
 
+    private func endTelemetry() {
+        Self.telemetryInbox.reset()
+        if openedCore is MkxpCore {
+            gamecore_setTelemetryCallback(nil, nil)
+        }
+        EssentialsTelemetryStore.shared.reset()
+    }
+
     private func handleEngineTerminated() {
+        endTelemetry()
         lifecycleGeneration += 1
         recordSessionPlayTime()
         GameSaveWatch.shared.endSession()

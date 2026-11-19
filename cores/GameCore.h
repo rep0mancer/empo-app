@@ -26,6 +26,7 @@
 #define GAME_CORE_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 // Key codes. Each value is the USB HID usage ID of the key on the
 // keyboard page (0x07).
@@ -135,6 +136,10 @@ typedef enum {
 } GameCoreSaveEvent;
 
 typedef void (*gamecore_SaveEventCallback)(GameCoreSaveEvent event, const char *detail, void *userdata);
+
+// UTF-8 JSON is borrowed for the callback's duration on the VM or relay thread.
+#define GAMECORE_MAX_TELEMETRY_BYTES 65536
+typedef void (*gamecore_TelemetryCallback)(const char *bytes, size_t length, void *userdata);
 
 // Fires on engine thread when paused (snapshot captured, audio suspended).
 typedef void (*gamecore_PausedCallback)(void *userdata);
@@ -348,6 +353,10 @@ void gamecore_setInfoMessageCallback(gamecore_InfoMessageCallback cb, void *user
 // Save events (Engine -> UI). They fire on a core thread, and the game
 // does not wait. A core that does not report saves never calls it.
 void gamecore_setSaveEventCallback(gamecore_SaveEventCallback cb, void *userdata);
+
+// Optional in older frameworks. Pass NULL to unsubscribe. Only copy the
+// borrowed bytes in the callback. Keep userdata valid for in-flight calls.
+void gamecore_setTelemetryCallback(gamecore_TelemetryCallback cb, void *userdata);
 
 // Pause / Resume (UI <-> Engine).
 //   1. UI calls `gamecore_requestPause()`

@@ -608,6 +608,9 @@ void gamecore_setErrorMessageCallback(gamecore_ErrorMessageCallback, void *) {
 void gamecore_setInfoMessageCallback(gamecore_InfoMessageCallback, void *) {
 }
 
+void gamecore_setTelemetryCallback(gamecore_TelemetryCallback, void *) {
+}
+
 void gamecore_setSaveEventCallback(gamecore_SaveEventCallback, void *) {
 }
 

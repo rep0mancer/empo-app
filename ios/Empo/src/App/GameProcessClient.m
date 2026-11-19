@@ -56,6 +56,8 @@ static gamecore_InfoMessageCallback gInfoCallback;
 static void *gInfoUserdata;
 static gamecore_SaveEventCallback gSaveCallback;
 static void *gSaveUserdata;
+static gamecore_TelemetryCallback gTelemetryCallback;
+static void *gTelemetryUserdata;
 static gamecore_PausedCallback gPausedCallback;
 static void *gPausedUserdata;
 static gamecore_ResumedCallback gResumedCallback;
@@ -267,6 +269,24 @@ static BOOL fromSession(NSXPCConnection *connection, void (^body)(void)) {
     }
 }
 
+- (void)telemetrySnapshot:(NSData *)json {
+    if (![json isKindOfClass:NSData.class] || json.length == 0 ||
+        json.length > GAMECORE_MAX_TELEMETRY_BYTES) {
+        return;
+    }
+    __block gamecore_TelemetryCallback callback = NULL;
+    __block void *userdata = NULL;
+    fromSession(self.connection, ^{
+        if (!gTerminated) {
+            callback = gTelemetryCallback;
+            userdata = gTelemetryUserdata;
+        }
+    });
+    if (callback != NULL) {
+        callback(json.bytes, json.length, userdata);
+    }
+}
+
 - (void)pausedWithSnapshot:(NSData *)rgba width:(int)width height:(int)height {
     // The app makes an image of width * height * 4 bytes from the
     // snapshot, so it keeps only a snapshot whose size agrees.
@@ -361,6 +381,8 @@ static xpc_object_t lentMemory(void) {
     gOpen = YES;
     gConnection = nil;
     gWaiting = [NSMutableArray new];
+    gTelemetryCallback = NULL;
+    gTelemetryUserdata = NULL;
     gStatus = @{};
     gStatusAsked = NO;
     gTextInputActive = NO;
@@ -557,6 +579,14 @@ int gameprocess_isEngineHung(void) {
     BOOL hung = gHung;
     os_unfair_lock_unlock(&gLock);
     return hung;
+}
+
+void gameprocess_setTelemetryCallback(gamecore_TelemetryCallback cb, void *userdata) {
+    os_unfair_lock_lock(&gLock);
+    gTelemetryCallback = cb;
+    gTelemetryUserdata = userdata;
+    os_unfair_lock_unlock(&gLock);
+    EmpoGameProcessSend(^(id<EmpoGameProcess> process) { [process setTelemetryEnabled:cb != NULL]; });
 }
 
 void gameprocess_setEngineTerminatedCallback(gamecore_EngineTerminatedCallback cb, void *userdata) {

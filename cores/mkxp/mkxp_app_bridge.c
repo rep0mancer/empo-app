@@ -169,6 +169,10 @@ void gamecore_setSaveEventCallback(gamecore_SaveEventCallback cb, void *userdata
     mkxp_setSaveEventCallback((mkxp_SaveEventCallback)cb, userdata);
 }
 
+void gamecore_setTelemetryCallback(gamecore_TelemetryCallback cb, void *userdata) {
+    mkxp_setTelemetryCallback(cb, userdata);
+}
+
 void gamecore_requestPause(void) {
     mkxp_requestPause();
 }

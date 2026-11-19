@@ -11,7 +11,9 @@
 
 #define GAMECORE_FUNCTION(ret, name, params, args) static ret(*core_##name) params;
 #define GAMECORE_VOID(name, params, args) static void(*core_##name) params;
+#define GAMECORE_OPTIONAL_VOID(name, params, args) GAMECORE_VOID(name, params, args)
 #include "GameCoreFunctions.h"
+#undef GAMECORE_OPTIONAL_VOID
 #undef GAMECORE_FUNCTION
 #undef GAMECORE_VOID
 
@@ -32,7 +34,9 @@ const char *EmpoCoreOpen(const char *binaryPath) {
         return error;                                                                                        \
     }
 #define GAMECORE_FUNCTION(ret, name, params, args) GAMECORE_VOID(name, params, args)
+#define GAMECORE_OPTIONAL_VOID(name, params, args) core_##name = dlsym(core, "gamecore_" #name);
 #include "GameCoreFunctions.h"
+#undef GAMECORE_OPTIONAL_VOID
 #undef GAMECORE_FUNCTION
 #undef GAMECORE_VOID
     return NULL;
@@ -54,5 +58,10 @@ static void notOpen(const char *name) {
         if (core_##name == NULL)                                                                             \
             notOpen(#name);                                                                                  \
         core_##name args;                                                                                    \
+    }
+#define GAMECORE_OPTIONAL_VOID(name, params, args)                                                           \
+    void gamecore_##name params {                                                                            \
+        if (core_##name != NULL)                                                                             \
+            core_##name args;                                                                                \
     }
 #include "GameCoreFunctions.h"

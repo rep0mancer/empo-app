@@ -115,4 +115,17 @@ static void *coreSymbol(const char *symbol) {
         fn args;                                                                                             \
     }
 
+// Optional callbacks are set only at session boundaries.
+#define GAMECORE_OPTIONAL_VOID(name, params, args)                                                           \
+    void gameprocess_##name params;                                                                          \
+    void gamecore_##name params {                                                                            \
+        if (gUseGameProcess) {                                                                               \
+            gameprocess_##name args;                                                                         \
+            return;                                                                                          \
+        }                                                                                                    \
+        void(*fn) params = gCore != NULL ? dlsym(gCore, "gamecore_" #name) : NULL;                           \
+        if (fn != NULL)                                                                                      \
+            fn args;                                                                                         \
+    }
+
 #include "GameCoreFunctions.h"
