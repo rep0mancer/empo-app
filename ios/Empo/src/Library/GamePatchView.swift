@@ -18,7 +18,7 @@ struct GamePatchView: View {
     @State private var sourceName = ""
     @State private var confirming = false
     @State private var applying = false
-    @State private var applied = false
+    @State private var replacementCount: Int?
     @State private var errorMessage: String?
 
     var body: some View {
@@ -60,8 +60,15 @@ struct GamePatchView: View {
                     Text("Choose a ZIP, 7z or RAR archive, a replacement asset, or a folder.")
                 }
             }
-            if applied {
-                Label("Patch applied.", systemImage: "checkmark.circle")
+            if let replacementCount {
+                Section {
+                    Label("Patch applied.", systemImage: "checkmark.circle")
+                } footer: {
+                    if replacementCount > 0 {
+                        Text("Find the original files in Files → Empo → Patch Backups → \(game.id).")
+                            .textSelection(.enabled)
+                    }
+                }
             }
             if let errorMessage {
                 Label {
@@ -79,7 +86,7 @@ struct GamePatchView: View {
             result in
             switch result {
             case .success(let url):
-                applied = false
+                replacementCount = nil
                 errorMessage = nil
                 selection = Selection(url: url, isFolder: pickFolder)
             case .failure(let error):
@@ -150,7 +157,7 @@ struct GamePatchView: View {
             }
             do {
                 try await GamePatchInstaller.apply(prepared, game: game)
-                applied = true
+                replacementCount = prepared.replaced.count
             } catch {
                 errorMessage = error.localizedDescription
             }

@@ -29827,6 +29827,16 @@
         }
       }
     },
+    "Find the original files in Files → Empo → Patch Backups → %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Originaldateien findest du unter Dateien → Empo → Patch Backups → %@."
+          }
+        }
+      }
+    },
     "Files to replace" : {
       "localizations" : {
         "de" : {

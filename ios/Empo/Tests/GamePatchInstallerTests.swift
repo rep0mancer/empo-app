@@ -11,6 +11,10 @@ final class GamePatchInstallerTests: XCTestCase {
     private let container = GameContainer(folderName: "PatchInstallerTests-\(UUID().uuidString)")
     private var game: GameEntry!
     private var shared: URL!
+    private var backups: URL {
+        DataDirectory.documentsRootURL.appendingPathComponent("Patch Backups").appendingPathComponent(
+            container.id)
+    }
 
     override func setUp() async throws {
         try await super.setUp()
@@ -35,6 +39,7 @@ final class GamePatchInstallerTests: XCTestCase {
     override func tearDown() async throws {
         if files.fileExists(atPath: input.path) { try files.removeItem(at: input) }
         if files.fileExists(atPath: container.url.path) { try files.removeItem(at: container.url) }
+        if files.fileExists(atPath: backups.path) { try files.removeItem(at: backups) }
         if let shared, files.fileExists(atPath: shared.path) { try files.removeItem(at: shared) }
         try await super.tearDown()
     }
@@ -68,6 +73,15 @@ final class GamePatchInstallerTests: XCTestCase {
         XCTAssertEqual(GameINI.gameTitle(at: container.gameURL), container.id)
         try await GamePatchInstaller.apply(review, game: game)
 
+        let versions = try files.contentsOfDirectory(at: backups, includingPropertiesForKeys: nil)
+        XCTAssertEqual(versions.count, 1)
+        let original = try XCTUnwrap(versions.first)
+        XCTAssertEqual(
+            try Data(contentsOf: original.appendingPathComponent("Game.ini")), ini(title: container.id))
+        XCTAssertEqual(
+            try Data(contentsOf: original.appendingPathComponent("Data/Map001.rxdata")),
+            Data("installed".utf8))
+        XCTAssertFalse(files.fileExists(atPath: original.appendingPathComponent("Save01.rxdata").path))
         XCTAssertEqual(GameINI.gameTitle(at: container.gameURL), newTitle)
         XCTAssertEqual(try installed("Data/Map001.rxdata"), "update")
         XCTAssertEqual(try installed("Graphics/Hero.png"), "new")
@@ -87,6 +101,7 @@ final class GamePatchInstallerTests: XCTestCase {
         let canceled = try await GamePatchInstaller.prepare(file: selected, isFolder: true, game: game)
         XCTAssertEqual(canceled.replaced, ["Data/Map001.rxdata"])
         GamePatchInstaller.discard(canceled)
+        XCTAssertFalse(files.fileExists(atPath: backups.path))
         XCTAssertEqual(try installed("Data/Map001.rxdata"), "installed")
 
         let review = try await GamePatchInstaller.prepare(file: selected, isFolder: true, game: game)
