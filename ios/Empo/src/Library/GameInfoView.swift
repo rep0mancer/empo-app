@@ -209,7 +209,7 @@ struct GameInfoView: View {
                                 NavigationLink {
                                     GamePatchView(game: game)
                                 } label: {
-                                    Label("Install game patch", systemImage: "shippingbox")
+                                    Label("Patches & Updates", systemImage: "shippingbox")
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                         .padding(.horizontal, Spacing.xl)
                                         .padding(.vertical, Spacing.lg)

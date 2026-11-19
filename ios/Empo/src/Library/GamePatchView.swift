@@ -71,7 +71,7 @@ struct GamePatchView: View {
                 }
             }
         }
-        .navigationTitle("Install game patch")
+        .navigationTitle("Patches & Updates")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(applying)
         .interactiveDismissDisabled(applying)

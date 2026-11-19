@@ -35016,12 +35016,12 @@
         }
       }
     },
-    "Install game patch" : {
+    "Patches & Updates" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Spiel-Patch installieren"
+            "value" : "Patches & Updates"
           }
         }
       }
