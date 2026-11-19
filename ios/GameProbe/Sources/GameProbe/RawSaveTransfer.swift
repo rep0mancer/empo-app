@@ -4,6 +4,41 @@ import Foundation
 /// Copies the game's RGSS save bytes. Never deserializes Ruby objects supplied by another app.
 public struct RawSaveTransfer: Sendable {
     public enum Location: String, Codable, Sendable { case shared, portable }
+    public enum GameLayout: Sendable { case essentials, standardXP, unknown }
+
+    /// A remembered manual choice is authoritative. Without one, demonstrated slots
+    /// outrank engine conventions. Mixed evidence needs an explicit choice.
+    public static func suggestedDirectory(
+        knownSlotDirectories: Set<String>, manualChoice: String?, layout: GameLayout,
+        sharedRoot: String?, portableRoot: String
+    ) -> String? {
+        if let manualChoice { return manualChoice }
+        if !knownSlotDirectories.isEmpty {
+            return knownSlotDirectories.count == 1 ? knownSlotDirectories.first : nil
+        }
+        switch layout {
+        case .essentials: return sharedRoot
+        case .standardXP: return portableRoot
+        case .unknown: return nil
+        }
+    }
+
+    /// Same fallback as the engine launch when a required folder cannot be made.
+    /// Merely viewing the transfer sheet must not create the shared tree.
+    public static func prospectiveSharedDirectory(_ resolved: URL?, fallback: URL) -> URL? {
+        guard let resolved else { return nil }
+        var current = resolved
+        let fm = FileManager.default
+        var directory: ObjCBool = false
+        while !fm.fileExists(atPath: current.path, isDirectory: &directory) {
+            let parent = current.deletingLastPathComponent()
+            guard parent.path != current.path else { return fallback }
+            current = parent
+        }
+        guard directory.boolValue, current.path == resolved.path || fm.isWritableFile(atPath: current.path)
+        else { return fallback }
+        return resolved
+    }
     public struct Staged: Sendable {
         public let directory: URL
         public let paths: [String]
@@ -158,7 +193,7 @@ public struct RawSaveTransfer: Sendable {
         let base = try root(.portable)
         // A game may create Save Data only on its first save. Offer it explicitly
         // without inferring that an empty game actually uses portable mode.
-        var folders: Set<String> = ["Save Data"]
+        var folders: Set<String> = ["Saves", "Save Data"]
         for name in try fm.contentsOfDirectory(atPath: base.path) where Self.usableDirectory(name) {
             let folder = base.appendingPathComponent(name)
             if Self.conventional(name), try Self.kind(folder) == .typeDirectory { folders.insert(name) }

@@ -9,6 +9,23 @@ import UniformTypeIdentifiers
 enum GameRawSaves {
     static var isTransferring = false
 
+    static func sharedDirectory(_ container: GameContainer, core: any GameCore) -> URL? {
+        RawSaveTransfer.prospectiveSharedDirectory(
+            DataDirectory.resolve(for: container, core: core), fallback: container.userDataURL)
+    }
+
+    static func layout(_ container: GameContainer) -> RawSaveTransfer.GameLayout {
+        if PokemonEssentialsDetection.detect(in: container.gameURL, stateDirectory: container.empoStateURL) {
+            return .essentials
+        }
+        let hasCustomData = ManagedMkxpConfig.readDataPath(
+            stateDirectory: container.empoStateURL, gameDirectory: container.gameURL
+        ).isDeclared
+        let script = GameINI.parseINIValue(at: container.gameURL, section: "game", key: "scripts")?
+            .replacingOccurrences(of: "\\", with: "/").lowercased()
+        return !hasCustomData && script == "data/scripts.rxdata" ? .standardXP : .unknown
+    }
+
     static func transfer(_ container: GameContainer, shared: URL?) -> RawSaveTransfer {
         return RawSaveTransfer(
             game: container.gameURL, shared: shared, state: container.empoStateURL,
@@ -26,7 +43,7 @@ enum GameRawSaves {
         }
         let record = container.empoStateURL.appendingPathComponent("pending-raw-save-import.json")
         guard FileManager.default.fileExists(atPath: record.path) else { return }
-        let shared = DataDirectory.resolve(for: container, core: core)
+        let shared = sharedDirectory(container, core: core)
         try transfer(container, shared: shared).recover()
     }
 }
@@ -55,6 +72,7 @@ struct RawSaveTransferView: View {
     @State private var staged: RawSaveTransfer.Staged?
     @State private var plan: RawSaveTransfer.Plan?
     @State private var export: PickedPackage?
+    @State private var routingHint = ""
     @State private var message: String?
     @State private var busy = false
     @State private var confirm = false
@@ -71,7 +89,19 @@ struct RawSaveTransferView: View {
     var body: some View {
         Form {
             Section {
-                Picker("Save directory", selection: $selected) {
+                Picker(
+                    "Save directory",
+                    selection: Binding(
+                        get: { selected },
+                        set: { value in
+                            selected = value
+                            UserDefaults.standard.set(value?.id, forKey: preference)
+                            routingHint =
+                                value == nil
+                                ? "Choose where this game reads its active save."
+                                : "Using your selected save directory."
+                        })
+                ) {
                     Text("Choose a directory").tag(nil as SaveDestination?)
                     ForEach(destinations) { row in Text(row.title).tag(Optional(row)) }
                 }
@@ -79,8 +109,8 @@ struct RawSaveTransferView: View {
                 if let selected { Text(selected.title).font(.caption.monospaced()).textSelection(.enabled) }
             } footer: {
                 Text(
-                    "Use the directory your game writes to. If you're unsure, make an in-game save, close the game and check which folder contains that slot."
-                )
+                    routingHint
+                        + " If you're unsure, make an in-game save, close the game and check its location.")
             }
             Section("Import") {
                 Button("Choose save files…") {
@@ -121,10 +151,7 @@ struct RawSaveTransferView: View {
         .navigationTitle("Import / Export Save")
         .disabled(busy)
         .task { refresh() }
-        .onChange(of: selected) { _, next in
-            if let next { UserDefaults.standard.set(next.id, forKey: preference) }
-            review()
-        }
+        .onChange(of: selected) { _, _ in review() }
         .fileImporter(
             isPresented: $picking, allowedContentTypes: importFolder ? [.folder] : [.data],
             allowsMultipleSelection: !importFolder
@@ -173,7 +200,7 @@ struct RawSaveTransferView: View {
         guard ready(), let core = GameCores.core(forGameAt: container.gameURL) else { return }
         do {
             try GameRawSaves.recover(container, core: core)
-            let shared = DataDirectory.resolveAndPrepare(for: container, core: core)
+            let shared = GameRawSaves.sharedDirectory(container, core: core)
             let service = GameRawSaves.transfer(container, shared: shared)
             transfer = service
             var rows: [SaveDestination] = []
@@ -195,8 +222,29 @@ struct RawSaveTransferView: View {
                 }
             }
             destinations = rows
-            let remembered = UserDefaults.standard.string(forKey: preference)
-            selected = rows.first { $0.id == remembered } ?? (occupied.count == 1 ? occupied[0] : nil)
+            let manual = rows.first { $0.id == UserDefaults.standard.string(forKey: preference) }
+            let sharedRoot = rows.first { $0.location == .shared && $0.folder.isEmpty }?.id
+            let portableRoot = rows.first { $0.location == .portable && $0.folder.isEmpty }?.id ?? ""
+            let layout = GameRawSaves.layout(container)
+            let proposed = RawSaveTransfer.suggestedDirectory(
+                knownSlotDirectories: Set(occupied.map(\.id)), manualChoice: manual?.id,
+                layout: layout, sharedRoot: sharedRoot, portableRoot: portableRoot)
+            selected = rows.first { $0.id == proposed }
+            if manual != nil {
+                routingHint = "Using your selected save directory."
+            } else if occupied.count == 1 {
+                routingHint = "This directory already contains the game's save files."
+            } else if occupied.count > 1 {
+                routingHint = "Saves exist in more than one directory. Choose the one this game uses."
+            } else if selected == nil {
+                routingHint = "No slots identify the active directory yet. Choose a destination."
+            } else if layout == .essentials {
+                routingHint = "No slots yet. The shared directory is suggested for Pokémon Essentials."
+            } else {
+                routingHint =
+                    "No slots yet. The game folder is suggested for a standard RPG Maker XP project."
+            }
+
         } catch { message = error.localizedDescription }
     }
     private func review() {

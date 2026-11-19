@@ -177,4 +177,47 @@ final class RawSaveTransferTests: XCTestCase {
         XCTAssertThrowsError(try transfer.plan(stage, location: .portable))
         XCTAssertEqual(try Data(contentsOf: scripts), bytes("game code"))
     }
+    func testFirstRunUsesEngineConventionsAndLeavesUnknownLayoutsUnselected() {
+        func choice(
+            _ kind: RawSaveTransfer.GameLayout, existing: Set<String> = [], manual: String? = nil
+        ) -> String? {
+            RawSaveTransfer.suggestedDirectory(
+                knownSlotDirectories: existing, manualChoice: manual, layout: kind,
+                sharedRoot: "Data/Studio/Adventure", portableRoot: "Games/Adventure/Game")
+        }
+        XCTAssertEqual(choice(.essentials), "Data/Studio/Adventure")
+        XCTAssertEqual(choice(.standardXP), "Games/Adventure/Game")
+        XCTAssertNil(choice(.unknown))
+        XCTAssertEqual(
+            choice(.essentials, existing: ["Games/Adventure/Game/Saves"]), "Games/Adventure/Game/Saves")
+        XCTAssertNil(choice(.standardXP, existing: ["Data/Studio/Adventure", "Games/Adventure/Game/Saves"]))
+        XCTAssertEqual(
+            choice(.essentials, manual: "Games/Adventure/Game/Save Data"), "Games/Adventure/Game/Save Data")
+    }
+
+    func testProspectiveDirectoriesStayAbsentUntilImportAndHandleBlockedSharedTree() throws {
+        try FileManager.default.removeItem(at: shared)
+        let fallback = game.deletingLastPathComponent().appendingPathComponent("UserData")
+        XCTAssertEqual(RawSaveTransfer.prospectiveSharedDirectory(shared, fallback: fallback), shared)
+        XCTAssertEqual(try transfer.portableDirectories(), ["Saves", "Save Data"])
+        XCTAssertTrue(try transfer.files(in: .shared).isEmpty)
+        for item in [
+            shared, fallback, game.appendingPathComponent("Saves"), game.appendingPathComponent("Save Data"),
+        ] {
+            XCTAssertFalse(FileManager.default.fileExists(atPath: item.path))
+        }
+        let input = try write("incoming/Save1.rxdata", "slot")
+        let staged = try RawSaveTransfer.stage([input], at: temp.appendingPathComponent("stage"))
+        let plan = try transfer.plan(staged, location: .portable, directory: "Saves")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: game.appendingPathComponent("Saves").path))
+        _ = try transfer.apply(plan)
+        XCTAssertEqual(
+            try Data(contentsOf: game.appendingPathComponent("Saves/Save1.rxdata")),
+            try Data(contentsOf: input))
+        try Data().write(to: shared)
+        XCTAssertEqual(
+            RawSaveTransfer.prospectiveSharedDirectory(
+                shared.appendingPathComponent("Slot"), fallback: fallback), fallback)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fallback.path))
+    }
 }
