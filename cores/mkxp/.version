@@ -1,4 +1,4 @@
 # Source pin for the personal engine. The compiled archive stays on the build Mac.
 MKXP_CORE_REPO=rep0mancer/mkxp-z-apple-mobile
-MKXP_CORE_COMMIT=e5f78e13f5d1092468089d0feb6963eccb6687fa
+MKXP_CORE_COMMIT=60aa950fc6f6ce9f06619315921bd73b23784706
 MKXP_CORE_VERSION=v23-personal.4
