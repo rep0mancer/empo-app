@@ -46,6 +46,9 @@ struct EssentialsSnapshot: Decodable, Equatable, Sendable {
         let types: [String]
         let hpPercent: Int
         let stages: [String: Int]
+        /// Opposing attack type to this battler's base type-chart multiplier.
+        /// A missing key means unavailable. A zero means immune.
+        let incomingEffectiveness: [String: Double]?
     }
 
     struct Battle: Decodable, Equatable, Sendable {

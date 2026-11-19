@@ -36,6 +36,21 @@ final class EssentialsTelemetryStoreTests: XCTestCase {
         XCTAssertEqual(snap.battle?.opponents.first?.stages["CUSTOM_STAT"], 2)
     }
 
+    func testDecodesOptionalDirectionalTypeChart() throws {
+        let store = EssentialsTelemetryStore()
+        store.receive(Data(live.utf8))
+        XCTAssertNil(store.snapshot?.battle?.opponents.first?.incomingEffectiveness)
+        let enriched = live.replacingOccurrences(
+            of: #""hpPercent":25"#,
+            with: #""hpPercent":25,"incomingEffectiveness":{"NORMAL":0,"CUSTOM_TYPE":0.25}"#)
+        store.receive(Data(enriched.utf8))
+        let chart = try XCTUnwrap(store.snapshot?.battle?.opponents.first?.incomingEffectiveness)
+        XCTAssertEqual(chart["NORMAL"], 0)
+        XCTAssertEqual(chart["CUSTOM_TYPE"], 0.25)
+        XCTAssertNil(chart["UNKNOWN"])
+        XCTAssertNil(store.snapshot?.battle?.allies.first?.incomingEffectiveness)
+    }
+
     func testUpdatesReplaceOldSectionsAndResetClearsTheSession() throws {
         let store = EssentialsTelemetryStore()
         store.receive(Data(live.utf8))
